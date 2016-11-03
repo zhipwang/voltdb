@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -72,10 +73,13 @@ import org.voltdb.probe.MeshProber;
 
 import com.google_voltpatches.common.base.Preconditions;
 import com.google_voltpatches.common.base.Predicate;
+import com.google_voltpatches.common.collect.ImmutableCollection;
 import com.google_voltpatches.common.collect.ImmutableList;
 import com.google_voltpatches.common.collect.ImmutableMap;
+import com.google_voltpatches.common.collect.ImmutableMultimap;
 import com.google_voltpatches.common.collect.ImmutableSet;
 import com.google_voltpatches.common.collect.Maps;
+import com.google_voltpatches.common.collect.Multimaps;
 import com.google_voltpatches.common.collect.Sets;
 import com.google_voltpatches.common.net.HostAndPort;
 import com.google_voltpatches.common.primitives.Longs;
@@ -92,6 +96,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     private static final VoltLogger m_hostLog = new VoltLogger("HOST");
     private static final VoltLogger m_tmLog = new VoltLogger("TM");
 
+    //VERBOTEN_THREADS is a set of threads that are not allowed to use ZK client.
     public static final CopyOnWriteArraySet<Long> VERBOTEN_THREADS = new CopyOnWriteArraySet<Long>();
 
     /**
@@ -118,6 +123,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
 
         private static final String ACCEPTOR = "acceptor";
         private static final String NETWORK_THREADS = "networkThreads";
+        private static final String PARTITION_GROUP_CONNECTIONS = "partitionGroupConnections";
         private static final String BACKWARDS_TIME_FORGIVENESS_WINDOW = "backwardstimeforgivenesswindow";
         private static final String DEAD_HOST_TIMEOUT = "deadhosttimeout";
         private static final String INTERNAL_PORT = "internalport";
@@ -135,6 +141,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         public long backwardsTimeForgivenessWindow = 1000 * 60 * 60 * 24 * 7;
         public VoltMessageFactory factory = new VoltMessageFactory();
         public int networkThreads =  Math.max(2, CoreUtils.availableProcessors() / 4);
+        public int partitionGroupConnections;
         public Queue<String> coreBindIds;
         public JoinAcceptor acceptor = null;
         public String group = "0";
@@ -211,6 +218,22 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             }
         }
 
+        public void initPartitionGroupConnections(int kfactor) {
+            try {
+                Integer picoNetworkThreadConfig = Integer.getInteger(PARTITION_GROUP_CONNECTIONS);
+                if ( picoNetworkThreadConfig != null ) {
+                    this.partitionGroupConnections = picoNetworkThreadConfig;
+                    m_networkLog.info("Overridden PicoNetwork thread count: " + this.partitionGroupConnections);
+                } else {
+                    this.partitionGroupConnections = Math.max(1, CoreUtils.availableProcessors() / (4 * kfactor));
+                    m_networkLog.info("The number of PicoNetwork thread has been set to " + this.partitionGroupConnections);
+                }
+
+            } catch (Exception e) {
+                m_networkLog.error("Error setting PicoNetwork thread count", e);
+            }
+        }
+
         @Override
         public String toString() {
             JSONStringer js = new JSONStringer();
@@ -224,6 +247,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                 js.keySymbolValuePair(DEAD_HOST_TIMEOUT, deadHostTimeout);
                 js.keySymbolValuePair(BACKWARDS_TIME_FORGIVENESS_WINDOW, backwardsTimeForgivenessWindow);
                 js.keySymbolValuePair(NETWORK_THREADS, networkThreads);
+                js.keySymbolValuePair(PARTITION_GROUP_CONNECTIONS, partitionGroupConnections);
                 js.key(ACCEPTOR).value(acceptor);
                 js.keySymbolValuePair(LOCAL_SITES_COUNT, localSitesCount);
                 js.endObject();
@@ -308,10 +332,18 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     private final Object m_mapLock = new Object();
 
     /*
-     * References to other hosts in the mesh.
+     * References to other hosts in the mesh. To any foreign host, there
+     * will be one primary connection and, if possible, multiple auxiliary
+     * connections.
      * Updates via COW
      */
-    volatile ImmutableMap<Integer, ForeignHost> m_foreignHosts = ImmutableMap.of();
+    volatile ImmutableMultimap<Integer, ForeignHost> m_foreignHosts = ImmutableMultimap.of();
+
+    /*
+     * Reference to the target HSId to FH mapping
+     * Updates via COW
+     */
+    volatile ImmutableMap<Long, ForeignHost> m_fhMapping = ImmutableMap.of();
 
     /*
      * References to all the local mailboxes
@@ -328,6 +360,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     private AgreementSite m_agreementSite;
     private ZooKeeper m_zk;
     private final AtomicInteger m_nextSiteId = new AtomicInteger(0);
+    private final AtomicInteger m_nextForeignHost = new AtomicInteger();
     private final AtomicBoolean m_paused = new AtomicBoolean(false);
 
     /*
@@ -717,7 +750,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         prepSocketChannel(socket);
         ForeignHost fhost = null;
         try {
-            fhost = new ForeignHost(this, hostId, socket, m_config.deadHostTimeout, listeningAddress, new PicoNetwork(socket));
+            fhost = new ForeignHost(this, hostId, socket, m_config.deadHostTimeout,
+                    listeningAddress, new PicoNetwork(socket));
             putForeignHost(hostId, fhost);
             fhost.enableRead(VERBOTEN_THREADS);
         } catch (java.io.IOException e) {
@@ -743,7 +777,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
      */
     private void putForeignHost(int hostId, ForeignHost fh) {
         synchronized (m_mapLock) {
-            m_foreignHosts = ImmutableMap.<Integer, ForeignHost>builder()
+            m_foreignHosts = ImmutableMultimap.<Integer, ForeignHost>builder()
                     .putAll(m_foreignHosts)
                     .put(hostId, fh)
                     .build();
@@ -762,14 +796,23 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     /*
      * Convenience method for doing the verbose COW remove from the map
      */
-    private void removeForeignHost(int hostId) {
-        ForeignHost fh = m_foreignHosts.get(hostId);
+    private void removeForeignHost(final int hostId) {
+        ImmutableCollection<ForeignHost> fhs = m_foreignHosts.get(hostId);
         synchronized (m_mapLock) {
-            m_foreignHosts = ImmutableMap.<Integer, ForeignHost>builder()
-                    .putAll(Maps.filterKeys(m_foreignHosts, not(equalTo(hostId))))
+            m_foreignHosts = ImmutableMultimap.<Integer, ForeignHost>builder()
+                    .putAll(Multimaps.filterKeys(m_foreignHosts, not(equalTo(hostId))))
+                    .build();
+            Predicate<Long> predicates = new Predicate<Long>() {
+                @Override
+                public boolean apply(Long intput) {
+                    return CoreUtils.getHostIdFromHSId(intput) != hostId;
+                }
+            };
+            m_fhMapping = ImmutableMap.<Long, ForeignHost>builder()
+                    .putAll(Maps.filterKeys(m_fhMapping, predicates))
                     .build();
         }
-        if (fh != null) {
+        for (ForeignHost fh : fhs) {
             fh.close();
         }
     }
@@ -784,10 +827,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
      * in the MembershipAcceptor.
      */
     @Override
-    public void requestJoin(
-            SocketChannel socket,
-            InetSocketAddress listeningAddress,
-            JSONObject jo) throws Exception {
+    public void requestJoin(SocketChannel socket, InetSocketAddress listeningAddress, JSONObject jo) throws Exception {
         /*
          * Generate the host id via creating an ephemeral sequential node
          */
@@ -829,7 +869,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                 /*
                  * Now add the host to the mailbox system
                  */
-                fhost = new ForeignHost(this, hostId, socket, m_config.deadHostTimeout, listeningAddress, new PicoNetwork(socket));
+                fhost = new ForeignHost(this, hostId, socket, m_config.deadHostTimeout,
+                        listeningAddress, new PicoNetwork(socket));
                 putForeignHost(hostId, fhost);
                 fhost.enableRead(VERBOTEN_THREADS);
 
@@ -905,10 +946,12 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                         m_config.internalInterface);
             hostObj.put(SocketJoiner.PORT, m_config.internalPort);
             jsArray.put(hostObj);
-            for (Map.Entry<Integer, ForeignHost> entry : m_foreignHosts.entrySet()) {
-                if (entry.getValue() == null) continue;
+            for (Entry<Integer, Collection<ForeignHost>> entry : m_foreignHosts.asMap().entrySet()) {
+                if (entry.getValue().isEmpty()) continue;
                 int hsId = entry.getKey();
-                ForeignHost fh = entry.getValue();
+                Iterator<ForeignHost> it = entry.getValue().iterator();
+                // all fhs to same host have the same address and port
+                ForeignHost fh = it.next();
                 hostObj = new JSONObject();
                 hostObj.put(SocketJoiner.HOST_ID, hsId);
                 hostObj.put(SocketJoiner.ADDRESS,
@@ -960,7 +1003,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             prepSocketChannel(sockets[ii]);
             ForeignHost fhost = null;
             try {
-                fhost = new ForeignHost(this, hosts[ii], sockets[ii], m_config.deadHostTimeout, listeningAddresses[ii], new PicoNetwork(sockets[ii]));
+                fhost = new ForeignHost(this, hosts[ii], sockets[ii], m_config.deadHostTimeout,
+                        listeningAddresses[ii], new PicoNetwork(sockets[ii]));
                 putForeignHost(hosts[ii], fhost);
             } catch (java.io.IOException e) {
                 org.voltdb.VoltDB.crashLocalVoltDB("Failed to instantiate foreign host", true, e);
@@ -1024,6 +1068,27 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
 
         m_zk.create(CoreZK.hosts_host + getHostId(), hostInfo.toBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
     }
+
+    /**
+     * SJ receives the request of creating a new connection from given host id,
+     * create a new FH for this connection.
+     */
+    @Override
+    public void notifyOfConnection(
+            int hostId,
+            SocketChannel socket,
+            InetSocketAddress listeningAddress) throws Exception
+    {
+        m_networkLog.info("Host " + getHostId() + " receives a new connection from host " + hostId);
+        prepSocketChannel(socket);
+        // Auxiliary connection never time out
+        ForeignHost fhost = new ForeignHost(this, hostId, socket, Integer.MAX_VALUE,
+                listeningAddress, new PicoNetwork(socket));
+        putForeignHost(hostId, fhost);
+        fhost.enableRead(VERBOTEN_THREADS);
+//        m_acceptor.accrue(hostId, jsObj);
+}
+
 
     private static int parseHostId(String name) {
         // HostInfo ZK node name has the form "host#", hence the offset of 4 to skip the "host".
@@ -1150,8 +1215,13 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         if (hostId == m_localHostId) {
             return CoreUtils.getHostnameOrAddress();
         }
-        ForeignHost fh = m_foreignHosts.get(hostId);
-        return fh == null ? "UNKNOWN" : fh.hostname();
+        Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
+        if (it.hasNext()) {
+            ForeignHost fh = it.next();
+            return fh.hostname();
+        } else {
+            return "UNKNOWN";
+        }
     }
 
     /**
@@ -1179,10 +1249,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         }
 
         // the foreign machine case
-        ForeignHost fhost = m_foreignHosts.get(hostId);
-
-        if (fhost == null)
-        {
+        ImmutableCollection<ForeignHost> fhosts = m_foreignHosts.get(hostId);
+        if (fhosts.isEmpty()) {
             if (!m_knownFailedHosts.contains(hostId)) {
                 m_networkLog.warn(
                         "Attempted to send a message to foreign host with id " +
@@ -1190,9 +1258,30 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             }
             return null;
         }
-
-        if (!fhost.isUp())
-        {
+        ForeignHost fhost = null;
+        if (CoreUtils.getSiteIdFromHSId(hsId) < 0 ) {
+            // special mailbox, always use primary connection
+            for (ForeignHost f : fhosts) {
+                if (f.isPrimary()) {
+                    fhost = f;
+                    break;
+                }
+            }
+            if (fhost == null) { // unlikely
+                m_networkLog.warn("Attempted to deliver a message to foreign host with id" +
+                            hostId + " but there is no primary connection to the host.");
+                return null;
+            }
+        } else {
+            // assign a foreign host for regular mailbox
+            fhost = m_fhMapping.get(hsId);
+            if (fhost == null) {
+                int index = Math.abs(m_nextForeignHost.getAndIncrement() % fhosts.size());
+                fhost = (ForeignHost) fhosts.toArray()[index];
+                bindForeignHost(hsId, fhost);
+            }
+        }
+        if (!fhost.isUp()) {
             if (!m_shuttingDown) {
                 m_networkLog.info("Attempted delivery of message to failed site: " + CoreUtils.hsIdToString(hsId));
             }
@@ -1216,6 +1305,18 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                 }
             }
             m_siteMailboxes = b.build();
+        }
+    }
+
+    private void bindForeignHost(Long hsId, ForeignHost fh) {
+        synchronized (m_mapLock) {
+            if (m_fhMapping.containsKey(hsId)) {
+                return;
+            }
+            ImmutableMap.Builder<Long, ForeignHost> b = ImmutableMap.builder();
+            m_fhMapping = b.putAll(m_fhMapping)
+                           .put(hsId, fh)
+                           .build();
         }
     }
 
@@ -1438,9 +1539,12 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
      * @param hostId The id of the foreign host to kill.
      */
     public void closeForeignHostSocket(int hostId) {
-        ForeignHost fh = m_foreignHosts.get(hostId);
-        if (fh != null && fh.isUp()) {
-            fh.killSocket();
+        Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
+        while (it.hasNext()) {
+            ForeignHost fh = it.next();
+            if (fh.isUp()) {
+                fh.killSocket();
+            }
         }
         reportForeignHostFailed(hostId);
     }
@@ -1453,28 +1557,42 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         return m_acceptor;
     }
 
+    /*
+     * Foreign hosts that share the same host id belong to the same machine, one
+     * poison pill is deadly enough
+     */
     public void sendPoisonPill(Collection<Integer> hostIds, String err, int cause) {
         for (int hostId : hostIds) {
-            ForeignHost fh = m_foreignHosts.get(hostId);
-            if (fh != null && fh.isUp()) {
-                fh.sendPoisonPill(err, ForeignHost.CRASH_SPECIFIED);
+            Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
+            // No need to overdose the poison pill
+            if (it.hasNext()) {
+                ForeignHost fh = it.next();
+                if (fh.isUp()) {
+                    fh.sendPoisonPill(err, ForeignHost.CRASH_SPECIFIED);
+                }
             }
         }
     }
 
     public void sendPoisonPill(String err) {
         for (int hostId : m_foreignHosts.keySet()) {
-            ForeignHost fh = m_foreignHosts.get(hostId);
-            if (fh != null && fh.isUp()) {
-                fh.sendPoisonPill(err, ForeignHost.CRASH_ALL);
+            Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
+            if (it.hasNext()) {
+                ForeignHost fh = it.next();
+                if (fh.isUp()) {
+                    fh.sendPoisonPill(err, ForeignHost.CRASH_ALL);
+                }
             }
         }
     }
 
     public void sendPoisonPill(String err, int targetHostId, int cause) {
-        ForeignHost fh = m_foreignHosts.get(targetHostId);
-        if (fh != null && fh.isUp()) {
-            fh.sendPoisonPill(err, cause);
+        Iterator<ForeignHost> it = m_foreignHosts.get(targetHostId).iterator();
+        if (it.hasNext()) {
+            ForeignHost fh = it.next();
+            if (fh.isUp()) {
+                fh.sendPoisonPill(err, cause);
+            }
         }
     }
 
@@ -1493,8 +1611,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
 
     public Map<Long, Pair<String, long[]>>
         getIOStats(final boolean interval) throws InterruptedException, ExecutionException {
-        final ImmutableMap<Integer, ForeignHost> fhosts = m_foreignHosts;
-        ArrayList<IOStatsIntf> picoNetworks = new ArrayList<IOStatsIntf>(fhosts.size());
+        final ImmutableMultimap<Integer, ForeignHost> fhosts = m_foreignHosts;
+        ArrayList<IOStatsIntf> picoNetworks = new ArrayList<IOStatsIntf>();
 
         for (ForeignHost fh : fhosts.values()) {
             picoNetworks.add(fh.m_network);
@@ -1509,15 +1627,50 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
      */
     public void cutLink(int hostIdA, int hostIdB) {
         if (m_localHostId == hostIdA) {
-            ForeignHost fh = m_foreignHosts.get(hostIdB);
-            if (fh != null) {
+            Iterator<ForeignHost> it = m_foreignHosts.get(hostIdB).iterator();
+            while (it.hasNext()) {
+                ForeignHost fh = it.next();
                 fh.cutLink();
             }
         }
         if (m_localHostId == hostIdB) {
-            ForeignHost fh = m_foreignHosts.get(hostIdA);
-            if (fh != null) {
+            Iterator<ForeignHost> it = m_foreignHosts.get(hostIdA).iterator();
+            while (it.hasNext()) {
+                ForeignHost fh = it.next();
                 fh.cutLink();
+            }
+        }
+    }
+
+    /**
+     * Start all PicoNetwork threads for every FH
+     */
+    public void enableReads() {
+        for (ForeignHost fh : m_foreignHosts.values()) {
+            fh.enableRead(VERBOTEN_THREADS);
+        }
+    }
+
+    public void createAuxiliaryConnections(Set<Integer> hostIds) {
+        int secondaryConn = m_config.partitionGroupConnections - 1; // not including primary connection
+        for (Integer hostId : hostIds) {
+            for (int ii = 0; ii < secondaryConn; ii++) {
+                Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
+                if (it.hasNext()) {
+                    ForeignHost fh = it.next();
+                    try {
+                        SocketChannel socket = m_joiner.requestForConnection(fh.m_listeningAddress);
+                        // Auxiliary connection never time out
+                        ForeignHost fhost = new ForeignHost(this, hostId, socket, Integer.MAX_VALUE,
+                                fh.m_listeningAddress, new PicoNetwork(socket));
+                        putForeignHost(hostId, fhost);
+                        fhost.enableRead(VERBOTEN_THREADS);
+                    } catch (Exception e) {
+                        m_hostLog.error("Failed to connect to peer nodes.", e);
+                        throw new RuntimeException("Failed to establish socket connection with " +
+                                fh.m_listeningAddress.getAddress().getHostAddress(), e);
+                    }
+                }
             }
         }
     }

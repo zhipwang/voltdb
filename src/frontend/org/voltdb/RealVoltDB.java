@@ -167,6 +167,7 @@ import com.google_voltpatches.common.base.Suppliers;
 import com.google_voltpatches.common.base.Throwables;
 import com.google_voltpatches.common.collect.ImmutableList;
 import com.google_voltpatches.common.collect.ImmutableMap;
+import com.google_voltpatches.common.collect.Sets;
 import com.google_voltpatches.common.net.HostAndPort;
 import com.google_voltpatches.common.util.concurrent.ListenableFuture;
 import com.google_voltpatches.common.util.concurrent.ListeningExecutorService;
@@ -941,6 +942,18 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                 }
                 else {
                     AbstractTopology topo = AbstractTopology.topologyFromJSON(topoJSON);
+                    int partitionGroups = topo.getHostCount() / (m_configuredReplicationFactor + 1);
+                    if (m_configuredReplicationFactor > 0 && partitionGroups > 1) {
+                        // Create x connections between nodes with a partition group
+                        Set<Integer> buddyHostIds = topo.getBuddyHostIds(m_messenger.getHostId());
+                        Set<Integer> peers = Sets.newHashSet();
+                        for (Integer hostId : buddyHostIds) {
+                            if (hostId > m_messenger.getHostId()) {
+                                peers.add(hostId);
+                            }
+                        }
+                        m_messenger.createAuxiliaryConnections(peers);
+                    }
                     m_configuredNumberOfPartitions = topo.getPartitionCount();
                     partitions = topo.getPartitionIdList(m_messenger.getHostId());
                 }
@@ -2381,6 +2394,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         hmconfig.coreBindIds = m_config.m_networkCoreBindings;
         hmconfig.acceptor = criteria;
         hmconfig.localSitesCount = m_config.m_sitesperhost;
+        hmconfig.initPartitionGroupConnections(criteria.getkFactor());
 
         m_messenger = new org.voltcore.messaging.HostMessenger(hmconfig, this);
 

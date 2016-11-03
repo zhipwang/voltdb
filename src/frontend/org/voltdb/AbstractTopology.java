@@ -39,6 +39,7 @@ import org.json_voltpatches.JSONStringer;
 
 import com.google_voltpatches.common.collect.ImmutableMap;
 import com.google_voltpatches.common.collect.ImmutableSet;
+import com.google_voltpatches.common.collect.Sets;
 
 public class AbstractTopology {
 
@@ -1305,6 +1306,24 @@ public class AbstractTopology {
 
     public int getPartitionCount() {
         return partitionsById.size();
+    }
+
+    /**
+     * Given a hostId, return the hostId of its buddies (including itself) which both
+     * belong to the same partition group.
+     * @param topo The abstract topology
+     * @param hostId the given hostId
+     * @return
+     */
+    public Set<Integer> getBuddyHostIds(int hostId) {
+        Set<Integer> buddyHostIds = Sets.newHashSet();
+        for (Integer pid : getPartitionIdList(hostId)) {
+            Partition p = partitionsById.get(pid);
+            if (p != null) {
+                buddyHostIds.addAll(p.hostIds);
+            }
+        }
+        return buddyHostIds;
     }
 
     public List<Integer> getPartitionIdList(int hostId) {

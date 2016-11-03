@@ -169,6 +169,7 @@ public class ForeignHost {
         m_closing = true;
         try {
             m_network.shutdownAsync();
+
         } catch (InterruptedException e) {
             Throwables.propagate(e);
         }
@@ -213,6 +214,10 @@ public class ForeignHost {
 
     /** Send a message to the network. This public method is re-entrant. */
     void send(final long destinations[], final VoltMessage message) {
+        if (!m_isUp) {
+            VoltDB.crashLocalVoltDB("Failed to send VoltMessage because FH doesn't up");
+            return;
+        }
         if (destinations.length == 0) {
             return;
         }
@@ -263,7 +268,8 @@ public class ForeignHost {
          * Try and give some warning when a connection is timing out.
          * Allows you to observe the liveness of the host receiving the heartbeats
          */
-        if (current_delta > m_logRate) {
+        if ((m_deadHostTimeout != Integer.MAX_VALUE) &&
+                (current_delta > m_logRate)) {
             rateLimitedLogger.log(
                     "Have not received a message from host "
                         + hostnameAndIPAndPort() + " for " + (current_delta / 1000.0) + " seconds",
@@ -273,6 +279,7 @@ public class ForeignHost {
         // set m_isUp to false, so use both that and m_closing to
         // avoid repeat reports of a single node failure
         if ((!m_closing && m_isUp) &&
+            (m_deadHostTimeout != Integer.MAX_VALUE) &&
             (current_delta > m_deadHostTimeout))
         {
             if (m_deadReportsCount.getAndIncrement() == 0) {
@@ -287,7 +294,6 @@ public class ForeignHost {
         }
     }
 
-
     String hostnameAndIPAndPort() {
         return m_network.getHostnameAndIPAndPort();
     }
@@ -299,11 +305,13 @@ public class ForeignHost {
     /** Deliver a deserialized message from the network to a local mailbox */
     private void deliverMessage(long destinationHSId, VoltMessage message) {
         if (!m_hostMessenger.validateForeignHostId(m_hostId)) {
-            hostLog.warn(String.format("Message (%s) sent to site id: %s @ (%s) at " +
-                    m_hostMessenger.getHostId() + " from " + CoreUtils.hsIdToString(message.m_sourceHSId) +
-                    " which is a known failed host. The message will be dropped\n",
+            hostLog.warn(String.format("Message (%s) sent to site id: %s @ (%s) at %d from %s "
+                    + "which is a known failed host. The message will be dropped\n",
                     message.getClass().getSimpleName(),
-                    CoreUtils.hsIdToString(destinationHSId), m_socket.getRemoteSocketAddress().toString()));
+                    CoreUtils.hsIdToString(destinationHSId),
+                    m_socket.getRemoteSocketAddress().toString(),
+                    m_hostMessenger.getHostId(),
+                    CoreUtils.hsIdToString(message.m_sourceHSId)));
             return;
         }
 
@@ -313,10 +321,12 @@ public class ForeignHost {
          * because we are saying that things can come and go
          */
         if (mailbox == null) {
-            hostLog.info(String.format("Message (%s) sent to unknown site id: %s @ (%s) at " +
-                    m_hostMessenger.getHostId() + " from " + CoreUtils.hsIdToString(message.m_sourceHSId) + "\n",
+            hostLog.info(String.format("Message (%s) sent to unknown site id: %s @ (%s) at %d from %s \n",
                     message.getClass().getSimpleName(),
-                    CoreUtils.hsIdToString(destinationHSId), m_socket.getRemoteSocketAddress().toString()));
+                    CoreUtils.hsIdToString(destinationHSId),
+                    m_socket.getRemoteSocketAddress().toString(),
+                    m_hostMessenger.getHostId(),
+                    CoreUtils.hsIdToString(message.m_sourceHSId)));
             /*
              * If it is for the wrong host, that definitely isn't cool
              */
@@ -329,7 +339,8 @@ public class ForeignHost {
         mailbox.deliver(message);
     }
 
-    /** Read data from the network. Runs in the context of Port when
+    /**
+     * Read data from the network. Runs in the context of PicoNetwork thread when
      * data is available.
      * @throws IOException
      */
@@ -417,6 +428,7 @@ public class ForeignHost {
         message.put(errBytes);
         message.putInt(cause);
         message.flip();
+        // Ask the first thread to do the favor.
         m_network.enqueue(message);
     }
 
@@ -431,5 +443,10 @@ public class ForeignHost {
      */
     void cutLink() {
         m_linkCutForTest.set(true);
+    }
+
+    public boolean isPrimary() {
+        // Secondary foreign host never time out
+        return m_deadHostTimeout != Integer.MAX_VALUE;
     }
 }
