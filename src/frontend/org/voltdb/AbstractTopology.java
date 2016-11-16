@@ -42,6 +42,18 @@ import com.google_voltpatches.common.collect.ImmutableSet;
 
 public class AbstractTopology {
 
+    //Topology JSON keys
+    public final static String TOPO_PARTITIONS = "partitions";
+    public final static String TOPO_PARTITION_ID = "partition_id";
+    public final static String TOPO_MASTER = "master";
+    public final static String TOPO_REPLICA = "replicas";
+    public final static String TOPO_HOST_COUNT = "hostcount";
+    public final static String TOPO_HOST_ID = "host_id";
+    public final static String TOPO_SITE_PER_HOST = "sites_per_host";
+    public final static String TOPO_KFACTOR = "kfactor";
+    public final static String TOPO_HOST_ID_TO_SPH = "host_id_to_sph";
+
+
     public final long version;
     public final ImmutableMap<Integer, Host> hostsById;
     public final ImmutableMap<Integer, Partition> partitionsById;

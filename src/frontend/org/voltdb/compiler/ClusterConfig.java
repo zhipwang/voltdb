@@ -36,6 +36,7 @@ import org.json_voltpatches.JSONException;
 import org.json_voltpatches.JSONObject;
 import org.json_voltpatches.JSONStringer;
 import org.voltcore.logging.VoltLogger;
+import org.voltdb.AbstractTopology;
 import org.voltdb.VoltDB;
 import org.voltdb.utils.MiscUtils;
 
@@ -57,18 +58,18 @@ public class ClusterConfig
     {
         List<Integer> partitions = new ArrayList<Integer>();
 
-        JSONArray parts = topo.getJSONArray("partitions");
+        JSONArray parts = topo.getJSONArray(AbstractTopology.TOPO_PARTITIONS);
 
         for (int p = 0; p < parts.length(); p++) {
             // have an object in the partitions array
             JSONObject aPartition = parts.getJSONObject(p);
-            int pid = aPartition.getInt("partition_id");
+            int pid = aPartition.getInt(AbstractTopology.TOPO_PARTITION_ID);
             if (onlyMasters) {
-                if (aPartition.getInt("master") == hostId) {
+                if (aPartition.getInt(AbstractTopology.TOPO_MASTER) == hostId) {
                     partitions.add(pid);
                 }
             } else {
-                JSONArray replicas = aPartition.getJSONArray("replicas");
+                JSONArray replicas = aPartition.getJSONArray(AbstractTopology.TOPO_REPLICA);
                 for (int h = 0; h < replicas.length(); h++) {
                     int replica = replicas.getInt(h);
                     if (replica == hostId) {
@@ -100,7 +101,7 @@ public class ClusterConfig
         }
 
         // increase host count
-        topo.put("hostcount", config.getHostCount() + newHosts);
+        topo.put(AbstractTopology.TOPO_HOST_COUNT, config.getHostCount() + newHosts);
     }
 
     /**
@@ -112,14 +113,14 @@ public class ClusterConfig
     public static void addPartitions(JSONObject topo, Multimap<Integer, Integer> partToHost)
         throws JSONException
     {
-        JSONArray partitions = topo.getJSONArray("partitions");
+        JSONArray partitions = topo.getJSONArray(AbstractTopology.TOPO_PARTITIONS);
         for (Map.Entry<Integer, Collection<Integer>> e : partToHost.asMap().entrySet()) {
             int partition = e.getKey();
             Collection<Integer> hosts = e.getValue();
 
             JSONObject partObj = new JSONObject();
-            partObj.put("partition_id", partition);
-            partObj.put("replicas", hosts);
+            partObj.put(AbstractTopology.TOPO_PARTITION_ID, partition);
+            partObj.put(AbstractTopology.TOPO_REPLICA, hosts);
 
             partitions.put(partObj);
         }
@@ -137,11 +138,11 @@ public class ClusterConfig
                                         Map<Integer, Integer> sphMap)
         throws JSONException
     {
-        JSONArray hostIdToSph = topo.getJSONArray("host_id_to_sph");
+        JSONArray hostIdToSph = topo.getJSONArray(AbstractTopology.TOPO_HOST_ID_TO_SPH);
         for (Integer hostId : joinedHostIds) {
             JSONObject sphObj = new JSONObject();
-            sphObj.put("host_id", hostId);
-            sphObj.put("sites_per_host", sphMap.get(hostId));
+            sphObj.put(AbstractTopology.TOPO_HOST_ID, hostId);
+            sphObj.put(AbstractTopology.TOPO_SITE_PER_HOST, sphMap.get(hostId));
             hostIdToSph.put(sphObj);
         }
     }
@@ -159,16 +160,16 @@ public class ClusterConfig
     // this all magically works.  If you change that fact, good luck Chuck.
     public ClusterConfig(JSONObject topo) throws JSONException
     {
-        m_hostCount = topo.getInt("hostcount");
+        m_hostCount = topo.getInt(AbstractTopology.TOPO_HOST_COUNT);
         m_sitesPerHostMap = Maps.newHashMap();
-        JSONArray sphMap = topo.getJSONArray("host_id_to_sph");
+        JSONArray sphMap = topo.getJSONArray(AbstractTopology.TOPO_HOST_ID_TO_SPH);
         for (int i = 0; i < sphMap.length(); i++) {
             JSONObject entry = sphMap.getJSONObject(i);
-            int hostId = entry.getInt("host_id");
-            int sph = entry.getInt("sites_per_host");
+            int hostId = entry.getInt(AbstractTopology.TOPO_HOST_ID);
+            int sph = entry.getInt(AbstractTopology.TOPO_SITE_PER_HOST);
             m_sitesPerHostMap.put(hostId, sph);
         }
-        m_replicationFactor = topo.getInt("kfactor");
+        m_replicationFactor = topo.getInt(AbstractTopology.TOPO_KFACTOR);
         m_errorMsg = "Config is unvalidated";
     }
 
@@ -307,6 +308,7 @@ public class ClusterConfig
         }
     }
 
+    @SuppressWarnings("rawtypes")
     private static class Node implements Comparable {
         Set<Partition> m_masterPartitions = new HashSet<Partition>();
         Set<Partition> m_replicaPartitions = new HashSet<Partition>();
@@ -566,27 +568,27 @@ public class ClusterConfig
 
         JSONStringer stringer = new JSONStringer();
         stringer.object();
-        stringer.keySymbolValuePair("hostcount", m_hostCount);
-        stringer.keySymbolValuePair("kfactor", getReplicationFactor());
-        stringer.key("host_id_to_sph").array();
+        stringer.keySymbolValuePair(AbstractTopology.TOPO_HOST_COUNT, m_hostCount);
+        stringer.keySymbolValuePair(AbstractTopology.TOPO_KFACTOR, getReplicationFactor());
+        stringer.key(AbstractTopology.TOPO_HOST_ID_TO_SPH).array();
         for (Map.Entry<Integer, Integer> entry : sitesPerHostMap.entrySet()) {
             stringer.object();
-            stringer.keySymbolValuePair("host_id", entry.getKey());
-            stringer.keySymbolValuePair("sites_per_host", entry.getValue());
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_HOST_ID, entry.getKey());
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_SITE_PER_HOST, entry.getValue());
             stringer.endObject();
         }
         stringer.endArray();
-        stringer.key("partitions").array();
+        stringer.key(AbstractTopology.TOPO_PARTITIONS).array();
         for (int part = 0; part < partitionCount; part++)
         {
             stringer.object();
-            stringer.keySymbolValuePair("partition_id", part);
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_PARTITION_ID, part);
             // This two-line magic deterministically spreads the partition leaders
             // evenly across the cluster at startup.
             int index = part % (getReplicationFactor() + 1);
             int master = partToHosts.get(part).get(index);
-            stringer.keySymbolValuePair("master", master);
-            stringer.key("replicas").array();
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_MASTER, master);
+            stringer.key(AbstractTopology.TOPO_REPLICA).array();
             for (int host_pos : partToHosts.get(part)) {
                 stringer.value(host_pos);
             }
@@ -702,23 +704,23 @@ public class ClusterConfig
 
         JSONStringer stringer = new JSONStringer();
         stringer.object();
-        stringer.keySymbolValuePair("hostcount", m_hostCount);
-        stringer.keySymbolValuePair("kfactor", getReplicationFactor());
-        stringer.key("host_id_to_sph").array();
+        stringer.keySymbolValuePair(AbstractTopology.TOPO_HOST_COUNT, m_hostCount);
+        stringer.keySymbolValuePair(AbstractTopology.TOPO_KFACTOR, getReplicationFactor());
+        stringer.key(AbstractTopology.TOPO_HOST_ID_TO_SPH).array();
         for (Map.Entry<Integer, Integer> entry : sitesPerHostMap.entrySet()) {
             stringer.object();
-            stringer.keySymbolValuePair("host_id", entry.getKey());
-            stringer.keySymbolValuePair("sites_per_host", entry.getValue());
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_HOST_ID, entry.getKey());
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_SITE_PER_HOST, entry.getValue());
             stringer.endObject();
         }
         stringer.endArray();
-        stringer.key("partitions").array();
+        stringer.key(AbstractTopology.TOPO_PARTITIONS).array();
         for (int part = 0; part < partitionCount; part++)
         {
             stringer.object();
-            stringer.keySymbolValuePair("partition_id", part);
-            stringer.keySymbolValuePair("master", partitions.get(part).m_master.m_hostId);
-            stringer.key("replicas").array();
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_PARTITION_ID, part);
+            stringer.keySymbolValuePair(AbstractTopology.TOPO_MASTER, partitions.get(part).m_master.m_hostId);
+            stringer.key(AbstractTopology.TOPO_REPLICA).array();
             for (Node n : partitions.get(part).m_replicas) {
                 stringer.value(n.m_hostId);
             }
