@@ -1078,6 +1078,21 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         return hostGroups;
     }
 
+    public Map<Integer, String> getHostGroupsFromZK() {
+        Map<Integer, String> hostGroups = Maps.newHashMap();
+        try {
+            List<String> children = m_zk.getChildren(CoreZK.hosts, false);
+            for (String child : children) {
+                byte[] payload = m_zk.getData( ZKUtil.joinZKPath(CoreZK.hosts, child), false, new Stat());
+                final HostInfo info = HostInfo.fromBytes(payload);
+                hostGroups.put(parseHostId(child), info.m_group);
+            }
+        } catch (Exception e) {
+            VoltDB.crashGlobalVoltDB("Unable to get placement groups from Zookeeper", false, e);
+        }
+        return hostGroups;
+    }
+
     public Map<Integer, Integer> getSitesPerHostMapFromZK() {
         Map<Integer, Integer> sphMap = new HashMap<>();
         try {

@@ -47,7 +47,6 @@ public class AbstractTopology {
     public final static String TOPO_PARTITION_ID = "partition_id";
     public final static String TOPO_MASTER = "master";
     public final static String TOPO_REPLICA = "replicas";
-    public final static String TOPO_HOST_COUNT = "hostcount";
     public final static String TOPO_HOST_ID = "host_id";
     public final static String TOPO_SITE_PER_HOST = "sites_per_host";
     public final static String TOPO_KFACTOR = "kfactor";
@@ -316,8 +315,11 @@ public class AbstractTopology {
      * @param k
      * @return
      */
-    public static String validateLegacyClusterConfig(int hostCount, int sitesPerHost, int k) {
-        int totalSites = sitesPerHost * hostCount;
+    public static String validateLegacyClusterConfig(int hostCount, Map<Integer, Integer> sitesPerHostMap, int k) {
+        int totalSites = 0;
+        for (Map.Entry<Integer, Integer> entry : sitesPerHostMap.entrySet()) {
+            totalSites += entry.getValue();
+        }
 
         if (hostCount <= k) {
             return "Not enough nodes to ensure K-Safety.";
@@ -731,12 +733,11 @@ public class AbstractTopology {
     //
     /////////////////////////////////////
 
-    public String topologyToJSON() throws JSONException {
+    public JSONObject topologyToJSON() throws JSONException {
         JSONStringer stringer = new JSONStringer();
         stringer.object();
 
-        stringer.key(TOPO_VERSION).value(version);
-
+        stringer.keySymbolValuePair(TOPO_VERSION, version);
         stringer.key(TOPO_HAGROUPS).array();
         List<HAGroup> haGroups = hostsById.values().stream()
                 .map(h -> h.haGroup)
@@ -761,7 +762,7 @@ public class AbstractTopology {
 
         stringer.endObject();
 
-        return new JSONObject(stringer.toString()).toString(4);
+        return new JSONObject(stringer.toString());
     }
 
     public static AbstractTopology topologyFromJSON(String jsonTopology) throws JSONException {
@@ -1239,5 +1240,49 @@ public class AbstractTopology {
             }
 
         } while (foundAMove);
+    }
+
+    public static AbstractTopology getTopology(
+            Map<Integer, Integer> sitesPerHostMap,
+            Map<Integer, String> hostGroups,
+            int kfactor)
+    {
+        // host descriptions
+        HostDescription [] hosts = new HostDescription[sitesPerHostMap.size()];
+        for (Map.Entry<Integer, Integer> e : sitesPerHostMap.entrySet()) {
+            int hostId = e.getKey();
+            int sitesCount = e.getValue();
+            hosts[hostId] = new HostDescription(hostId, sitesCount, hostGroups.get(hostId));
+        }
+        // partition descriptions
+        int totalSites = 0;
+        for (Map.Entry<Integer, Integer> entry : sitesPerHostMap.entrySet()) {
+            totalSites += entry.getValue();
+        }
+        int partitionCount = totalSites / (kfactor + 1);
+        PartitionDescription[] partitions = new PartitionDescription[partitionCount];
+        for (int i = 0; i < partitionCount; i++) {
+            partitions[i] = new PartitionDescription(kfactor);
+        }
+
+        // get topology
+        AbstractTopology abstractTopo =
+                AbstractTopology.mutateAddHosts(AbstractTopology.EMPTY_TOPOLOGY, hosts);
+        abstractTopo = AbstractTopology.mutateAddPartitionsToEmptyHosts( abstractTopo, partitions);
+
+        return abstractTopo;
+    }
+
+    public int getHostCount() {
+        return hostsById.size();
+    }
+
+    public int getPartitionCount() {
+        return partitionsById.size();
+    }
+
+    public List<Integer> getPartitionIdList(int hostId) {
+        Host h = hostsById.get(hostId);
+        return (h != null) ? h.getSortedPartitionIdList() : null;
     }
 }

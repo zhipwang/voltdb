@@ -44,6 +44,7 @@ import org.voltcore.utils.CoreUtils;
 import org.voltcore.utils.Pair;
 import org.voltcore.zk.LeaderElector;
 import org.voltcore.zk.ZKUtil;
+import org.voltdb.AbstractTopology;
 import org.voltdb.MailboxNodeContent;
 import org.voltdb.StatsSource;
 import org.voltdb.VoltDB;
@@ -51,7 +52,6 @@ import org.voltdb.VoltTable.ColumnInfo;
 import org.voltdb.VoltType;
 import org.voltdb.VoltZK;
 import org.voltdb.VoltZK.MailboxType;
-import org.voltdb.compiler.ClusterConfig;
 
 import com.google_voltpatches.common.base.Preconditions;
 import com.google_voltpatches.common.collect.ImmutableMap;
@@ -417,18 +417,19 @@ public class Cartographer extends StatsSource
      * @return A list of partitions IDs to add to the cluster.
      * @throws JSONException
      */
-    public static List<Integer> getPartitionsToAdd(ZooKeeper zk, JSONObject topo)
+    public static List<Integer> getPartitionsToAdd(ZooKeeper zk, JSONObject topoJson)
             throws JSONException
     {
-        ClusterConfig  clusterConfig = new ClusterConfig(topo);
+        AbstractTopology topo = AbstractTopology.topologyFromJSON(topoJson);
         List<Integer> newPartitions = new ArrayList<Integer>();
         Set<Integer> existingParts = new HashSet<Integer>(getPartitions(zk));
         // Remove MPI
         existingParts.remove(MpInitiator.MP_INIT_PID);
-        int partsToAdd = clusterConfig.getPartitionCount() - existingParts.size();
+        int partitionCount = topo.partitionsById.size();
+        int partsToAdd = partitionCount - existingParts.size();
 
         if (partsToAdd > 0) {
-            hostLog.info("Computing new partitions to add. Total partitions: " + clusterConfig.getPartitionCount());
+            hostLog.info("Computing new partitions to add. Total partitions: " + partitionCount);
             for (int i = 0; newPartitions.size() != partsToAdd; i++) {
                 if (!existingParts.contains(i)) {
                     newPartitions.add(i);
