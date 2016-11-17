@@ -37,6 +37,8 @@ import org.json_voltpatches.JSONObject;
 import org.json_voltpatches.JSONStringer;
 import org.voltcore.logging.VoltLogger;
 import org.voltdb.AbstractTopology;
+import org.voltdb.AbstractTopology.HostDescription;
+import org.voltdb.AbstractTopology.PartitionDescription;
 import org.voltdb.VoltDB;
 import org.voltdb.utils.MiscUtils;
 
@@ -610,6 +612,23 @@ public class ClusterConfig
     {
         return partToHosts.entrySet().stream().allMatch(
                 v -> replicasCount == Sets.newHashSet(v.getValue()).size());
+    }
+
+    JSONObject buildGroupAwareTopology(Map<Integer, String> hostGroups, int partitionCount,
+            Map<Integer, Integer> sitesPerHostMap) throws JSONException {
+
+        AbstractTopology topo = AbstractTopology.mutateAddHosts(AbstractTopology.EMPTY_TOPOLOGY,
+                sitesPerHostMap.entrySet().stream().map(p->
+                    new HostDescription(p.getKey(), p.getValue(), hostGroups.get(p.getKey()))
+                ).toArray(HostDescription[]::new));
+
+        PartitionDescription[] partitions = new PartitionDescription[partitionCount];
+        for (int i = 0; i < partitionCount; i++) {
+            partitions[i] = new PartitionDescription(getReplicationFactor());
+        }
+
+        AbstractTopology.mutateAddPartitionsToEmptyHosts(topo, partitions);
+        return new JSONObject(topo.topologyToJSON());
     }
 
     /**
