@@ -96,7 +96,6 @@ public class AbstractTopology {
             for (Integer hostId : hostIds) {
                 stringer.value(hostId);
             }
-            stringer.value(leaderHostId);
             stringer.endArray();
             stringer.endObject();
         }
