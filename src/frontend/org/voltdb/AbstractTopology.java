@@ -593,6 +593,35 @@ public class AbstractTopology {
                 mutablePartitionMap);
     }
 
+    public static AbstractTopology mutateAddSite(AbstractTopology currentTopology, int hostId, int partitionId) {
+
+        //Convert all hosts to mutable hosts to add partitions and sites
+        Map<Integer, MutableHost> mutableHostMap = new TreeMap<>();
+        Map<Integer, MutablePartition> mutablePartitionMap = new TreeMap<>();
+        convertTopologyToMutables(currentTopology, mutableHostMap, mutablePartitionMap);
+
+        //Make sure that the host and partition are valid
+        MutableHost mutableHost = mutableHostMap.get(hostId);
+        MutablePartition mutablePartition = mutablePartitionMap.get(partitionId);
+        assert(mutableHost != null && mutablePartition != null);
+
+        //The host should not have the partition already
+        assert(mutableHost.partitions.stream().filter(p->p.id == partitionId).collect(Collectors.toList()).isEmpty());
+
+        MutablePartition partition = new MutablePartition(mutablePartition.id, mutablePartition.k + 1);
+        partition.leader = mutablePartition.leader;
+
+        MutableHost updatedMutableHost = new MutableHost(mutableHost.id, (mutableHost.targetSiteCount + 1), mutableHost.haGroup);
+        mutablePartition.hosts.add(updatedMutableHost);
+
+        mutableHostMap.put(hostId, updatedMutableHost);
+        mutablePartitionMap.put(partitionId, partition);
+        return convertMutablesToTopology(
+                currentTopology.version + 1,
+                mutableHostMap,
+                mutablePartitionMap);
+    }
+
     /**
      * Get the total number of missing replicas across all partitions.
      * Note this doesn't say how many partitions are under-represented.
