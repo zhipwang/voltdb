@@ -84,7 +84,7 @@ public class AbstractTopology {
         @Override
         public String toString() {
             String[] hostIdStrings = hostIds.stream().map(id -> String.valueOf(id)).toArray(String[]::new);
-            return String.format("Partition %d (leader %d, hosts %)", id, leaderHostId, String.join(",", hostIdStrings));
+            return String.format("Partition %d (leader %d, hosts %s)", id, leaderHostId, String.join(",", hostIdStrings));
         }
 
         private void toJSON(JSONStringer stringer) throws JSONException {
