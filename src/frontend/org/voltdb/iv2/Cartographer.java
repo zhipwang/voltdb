@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutorService;
 import org.apache.zookeeper_voltpatches.KeeperException;
 import org.apache.zookeeper_voltpatches.ZooKeeper;
 import org.json_voltpatches.JSONException;
-import org.json_voltpatches.JSONObject;
 import org.json_voltpatches.JSONStringer;
 import org.voltcore.logging.VoltLogger;
 import org.voltcore.messaging.BinaryPayloadMessage;
@@ -44,7 +43,6 @@ import org.voltcore.utils.CoreUtils;
 import org.voltcore.utils.Pair;
 import org.voltcore.zk.LeaderElector;
 import org.voltcore.zk.ZKUtil;
-import org.voltdb.AbstractTopology;
 import org.voltdb.MailboxNodeContent;
 import org.voltdb.StatsSource;
 import org.voltdb.VoltDB;
@@ -413,23 +411,21 @@ public class Cartographer extends StatsSource
      * Compute the new partition IDs to add to the cluster based on the new topology.
      *
      * @param  zk Zookeeper client
-     * @param topo The new topology which should include the new host count
+     * @param newPartitionTotalCount The new total partition count
      * @return A list of partitions IDs to add to the cluster.
      * @throws JSONException
      */
-    public static List<Integer> getPartitionsToAdd(ZooKeeper zk, JSONObject topoJson)
+    public static List<Integer> getPartitionsToAdd(ZooKeeper zk, int newPartitionTotalCount)
             throws JSONException
     {
-        AbstractTopology topo = AbstractTopology.topologyFromJSON(topoJson);
         List<Integer> newPartitions = new ArrayList<Integer>();
         Set<Integer> existingParts = new HashSet<Integer>(getPartitions(zk));
         // Remove MPI
         existingParts.remove(MpInitiator.MP_INIT_PID);
-        int partitionCount = topo.partitionsById.size();
-        int partsToAdd = partitionCount - existingParts.size();
+        int partsToAdd = newPartitionTotalCount - existingParts.size();
 
         if (partsToAdd > 0) {
-            hostLog.info("Computing new partitions to add. Total partitions: " + partitionCount);
+            hostLog.info("Computing new partitions to add. Total partitions: " + newPartitionTotalCount);
             for (int i = 0; newPartitions.size() != partsToAdd; i++) {
                 if (!existingParts.contains(i)) {
                     newPartitions.add(i);

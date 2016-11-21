@@ -48,9 +48,7 @@ public class AbstractTopology {
     public final static String TOPO_MASTER = "master";
     public final static String TOPO_REPLICA = "replicas";
     public final static String TOPO_HOST_ID = "host_id";
-    public final static String TOPO_SITE_PER_HOST = "sites_per_host";
     public final static String TOPO_KFACTOR = "kfactor";
-    public final static String TOPO_HOST_ID_TO_SPH = "host_id_to_sph";
     public final static String TOPO_VERSION = "version";
     public final static String TOPO_HAGROUPS = "haGroups";
     public final static String TOPO_HOSTS = "hosts";
@@ -1312,5 +1310,11 @@ public class AbstractTopology {
     public List<Integer> getPartitionIdList(int hostId) {
         Host h = hostsById.get(hostId);
         return (h != null) ? h.getSortedPartitionIdList() : null;
+    }
+
+    public int getReplicationFactor() {
+        //assume all partitions have the same k factor.
+        Partition partition =  partitionsById.values().iterator().next();
+        return partition.k;
     }
 }
