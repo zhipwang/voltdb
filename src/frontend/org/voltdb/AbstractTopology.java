@@ -52,8 +52,10 @@ public class AbstractTopology {
     public final static String TOPO_KFACTOR = "kfactor";
     public final static String TOPO_VERSION = "version";
     public final static String TOPO_HAGROUPS = "haGroups";
+    public final static String TOPO_HAGROUP = "haGroup";
     public final static String TOPO_HOSTS = "hosts";
-
+    public final static String TOPO_HOST = "host";
+    public final static String TOPO_SPH = "targetSiteCount";
     public final long version;
     public final ImmutableMap<Integer, Host> hostsById;
     public final ImmutableMap<Integer, Partition> partitionsById;
@@ -107,9 +109,7 @@ public class AbstractTopology {
             List<Integer> mutableHostIds = new ArrayList<>();
             JSONArray jsonHostIds = json.getJSONArray(TOPO_REPLICA);
             for (int i = 0; i < jsonHostIds.length(); i++) {
-                if (leaderHostId != jsonHostIds.getInt(i)) {
-                    mutableHostIds.add(jsonHostIds.getInt(i));
-                }
+                mutableHostIds.add(jsonHostIds.getInt(i));
             }
             return new Partition(id, k, leaderHostId, mutableHostIds);
         }
@@ -134,7 +134,7 @@ public class AbstractTopology {
         private void toJSON(JSONStringer stringer) throws JSONException {
             stringer.object();
             stringer.key("token").value(token);
-            stringer.key(TOPO_REPLICA).array();
+            stringer.key(TOPO_HOST).array();
             for (int hostId : hostIds) {
                 stringer.value(hostId);
             }
@@ -144,7 +144,7 @@ public class AbstractTopology {
 
         private static HAGroup fromJSON(JSONObject json) throws JSONException {
             String token = json.getString("token");
-            JSONArray jsonHosts = json.getJSONArray(TOPO_REPLICA);
+            JSONArray jsonHosts = json.getJSONArray(TOPO_HOST);
             int[] hostIds = new int[jsonHosts.length()];
             for (int i = 0; i < jsonHosts.length(); i++) {
                 hostIds[i] = jsonHosts.getInt(i);
@@ -182,15 +182,15 @@ public class AbstractTopology {
         @Override
         public String toString() {
             String[] partitionIdStrings = partitions.stream().map(p -> String.valueOf(p.id)).toArray(String[]::new);
-            return String.format("Host %d tsph:%d ha:%s (Partitions %s)",
+            return String.format("Host %d sph:%d ha:%s (Partitions %s)",
                     id, targetSiteCount, haGroup.token, String.join(",", partitionIdStrings));
         }
 
         private void toJSON(JSONStringer stringer) throws JSONException {
             stringer.object();
-            stringer.key("id").value(id);
-            stringer.key("targetSiteCount").value(targetSiteCount);
-            stringer.key("haGroup").value(haGroup.token);
+            stringer.key(TOPO_HOST_ID).value(id);
+            stringer.key(TOPO_SPH).value(targetSiteCount);
+            stringer.key(TOPO_HAGROUP).value(haGroup.token);
             stringer.key(TOPO_PARTITIONS).array();
             for (Partition partition : partitions) {
                 stringer.value(partition.id);
@@ -205,9 +205,9 @@ public class AbstractTopology {
                 final Map<Integer, Partition> partitionsById)
                         throws JSONException
         {
-            int id = json.getInt("id");
-            int targetSiteCount = json.getInt("targetSiteCount");
-            String haGroupToken = json.getString("haGroup");
+            int id = json.getInt(TOPO_HOST_ID);
+            int targetSiteCount = json.getInt(TOPO_SPH);
+            String haGroupToken = json.getString(TOPO_HAGROUP);
             HAGroup haGroup = haGroupsByToken.get(haGroupToken);
             JSONArray jsonPartitions = json.getJSONArray(TOPO_PARTITIONS);
             ArrayList<Partition> partitions = new ArrayList<>();
