@@ -156,6 +156,9 @@ public class SyncBenchmark {
         @Option(desc = "password.")
         String password = "";
 
+        @Option(desc = "Enable topology awareness")
+        boolean topologyaware = false;
+
         @Override
         public void validate() {
             if (duration <= 0) exitWithMessageAndUsage("duration must be > 0");
@@ -188,6 +191,11 @@ public class SyncBenchmark {
         ClientConfig clientConfig = new ClientConfig(config.username, config.password);
         clientConfig.setReconnectOnConnectionLoss(true);
         clientConfig.setClientAffinity(!config.noclientaffinity);
+
+        if (config.topologyaware) {
+            clientConfig.setTopologyChangeAware(true);
+        }
+
         client = ClientFactory.createClient(clientConfig);
 
         periodicStatsContext = client.createStatsContext();
@@ -237,20 +245,25 @@ public class SyncBenchmark {
         System.out.println("Connecting to VoltDB...");
 
         String[] serverArray = servers.split(",");
-        final CountDownLatch connections = new CountDownLatch(serverArray.length);
 
-        // use a new thread to connect to each server
-        for (final String server : serverArray) {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    connectToOneServerWithRetry(server);
-                    connections.countDown();
-                }
-            }).start();
+        if (config.topologyaware) {
+            connectToOneServerWithRetry(serverArray[0]);
+        } else {
+            final CountDownLatch connections = new CountDownLatch(serverArray.length);
+
+            // use a new thread to connect to each server
+            for (final String server : serverArray) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        connectToOneServerWithRetry(server);
+                        connections.countDown();
+                    }
+                }).start();
+            }
+            // block until all have connected
+            connections.await();
         }
-        // block until all have connected
-        connections.await();
     }
 
     /**
