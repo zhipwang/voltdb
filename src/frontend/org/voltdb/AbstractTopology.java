@@ -39,6 +39,7 @@ import org.json_voltpatches.JSONStringer;
 
 import com.google_voltpatches.common.collect.ImmutableMap;
 import com.google_voltpatches.common.collect.ImmutableSet;
+import com.google_voltpatches.common.collect.ImmutableSortedSet;
 import com.google_voltpatches.common.collect.Sets;
 
 public class AbstractTopology {
@@ -68,17 +69,17 @@ public class AbstractTopology {
     //
     /////////////////////////////////////
 
-    public static class Partition {
+    public static class Partition implements Comparable<Partition>{
         public final int id;
         public final int k;
         public final int leaderHostId;
-        public final ImmutableSet<Integer> hostIds;
+        public final ImmutableSortedSet<Integer> hostIds;
 
         private Partition(int id, int k, int leaderHostId, Collection<Integer> hostIds) {
             this.id = id;
             this.k = k;
             this.leaderHostId = leaderHostId;
-            this.hostIds = ImmutableSet.copyOf(hostIds);
+            this.hostIds = ImmutableSortedSet.copyOf(hostIds);
             assert(k >= 0);
         }
 
@@ -113,16 +114,21 @@ public class AbstractTopology {
             }
             return new Partition(id, k, leaderHostId, mutableHostIds);
         }
+
+        @Override
+        public int compareTo(Partition o) {
+            return (this.id - o.id);
+        }
     }
 
-    public static class HAGroup {
+    public static class HAGroup implements Comparable<HAGroup> {
         public final String token;
-        public final ImmutableSet<Integer> hostIds;
+        public final ImmutableSortedSet<Integer> hostIds;
 
         private HAGroup(String token, int[] hostIds) {
             this.token = token;
             Integer[] hostIdsInteger = ArrayUtils.toObject(hostIds);
-            this.hostIds = ImmutableSet.copyOf(hostIdsInteger);
+            this.hostIds = ImmutableSortedSet.copyOf(hostIdsInteger);
         }
 
         @Override
@@ -151,13 +157,18 @@ public class AbstractTopology {
             }
             return new HAGroup(token, hostIds);
         }
+
+        @Override
+        public int compareTo(HAGroup o) {
+            return this.token.compareTo(o.token);
+        }
     }
 
-    public static class Host {
+    public static class Host implements Comparable<Host> {
         public final int id;
         public final int targetSiteCount;
         public final HAGroup haGroup;
-        public final ImmutableSet<Partition> partitions;
+        public final ImmutableSortedSet<Partition> partitions;
 
         private Host(int id, int targetSiteCount, HAGroup haGroup, Collection<Partition> partitions) {
             assert(id >= 0);
@@ -169,7 +180,7 @@ public class AbstractTopology {
             this.id = id;
             this.targetSiteCount = targetSiteCount;
             this.haGroup = haGroup;
-            this.partitions = ImmutableSet.copyOf(partitions);
+            this.partitions = ImmutableSortedSet.copyOf(partitions);
         }
 
         public List<Integer> getSortedPartitionIdList() {
@@ -217,6 +228,11 @@ public class AbstractTopology {
             }
             return new Host(id, targetSiteCount, haGroup, partitions);
         }
+
+        @Override
+        public int compareTo(Host o) {
+            return (this.id - o.id);
+        }
     }
 
     public static class KSafetyViolationException extends Exception {
@@ -245,23 +261,28 @@ public class AbstractTopology {
     //
     /////////////////////////////////////
 
-    private static class MutablePartition {
+    private static class MutablePartition implements Comparable<MutablePartition> {
         final int id;
         final int k;
-        final Set<MutableHost> hosts = new HashSet<>();
+        final Set<MutableHost> hosts = new TreeSet<>();
         MutableHost leader = null;
 
         MutablePartition(int id, int k) {
             this.id = id;
             this.k = k;
         }
+
+        @Override
+        public int compareTo(MutablePartition o) {
+            return (id - o.id);
+        }
     }
 
-    private static class MutableHost {
+    private static class MutableHost implements Comparable<MutableHost> {
         final int id;
         int targetSiteCount;
         HAGroup haGroup;
-        Set<MutablePartition> partitions = new HashSet<MutablePartition>();
+        Set<MutablePartition> partitions = new TreeSet<MutablePartition>();
 
         MutableHost(int id, int targetSiteCount, HAGroup haGroup) {
             this.id = id;
@@ -276,6 +297,11 @@ public class AbstractTopology {
         /** Count the number of partitions that consider this host a leader */
         int leaderCount() {
             return (int) partitions.stream().filter(p -> p.leader == this).count();
+        }
+
+        @Override
+        public int compareTo(MutableHost o) {
+            return (id - o.id);
         }
     }
 
@@ -360,7 +386,7 @@ public class AbstractTopology {
                 .collect(Collectors.toMap(hd -> hd.hostId, hd -> hd));
 
         // build the full set of immutable hosts, using the HAGroups
-        Set<Host> fullHostSet = new HashSet<>();
+        Set <Host> fullHostSet = new TreeSet<>();
         for (HAGroup haGroup : haGroups) {
             for (int hostId : haGroup.hostIds) {
                 Host currentHost = currentTopology.hostsById.get(hostId);
@@ -376,7 +402,6 @@ public class AbstractTopology {
                 fullHostSet.add(newHost);
             }
         }
-
         return new AbstractTopology(currentTopology.version + 1, fullHostSet);
     }
 
@@ -445,9 +470,9 @@ public class AbstractTopology {
                 .distinct()
                 .collect(Collectors.toList());
 
-        Map<HAGroup, Map<HAGroup, Integer>> haGroupDistances = new HashMap<>();
+        Map<HAGroup, Map<HAGroup, Integer>> haGroupDistances = new TreeMap<>();
         for (HAGroup haGroup1 : haGroups) {
-            Map<HAGroup, Integer> distances = new HashMap<>();
+            Map<HAGroup, Integer> distances = new TreeMap<>();
             haGroupDistances.put(haGroup1, distances);
             for (HAGroup haGroup2 : haGroups) {
                 int distance = computeHADistance(haGroup1.token, haGroup2.token);
