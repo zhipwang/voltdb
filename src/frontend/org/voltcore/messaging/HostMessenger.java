@@ -68,7 +68,6 @@ import org.voltcore.utils.PortGenerator;
 import org.voltcore.utils.ShutdownHooks;
 import org.voltcore.zk.CoreZK;
 import org.voltcore.zk.ZKUtil;
-import org.voltdb.AbstractTopology;
 import org.voltdb.VoltDB;
 import org.voltdb.probe.MeshProber;
 
@@ -1652,18 +1651,13 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         }
     }
 
-    public void createAuxiliaryConnections(AbstractTopology topo) {
+    public void createAuxiliaryConnections(Set<Integer> peers) {
         // Create connections to nodes within the same partition group
-        Set<Integer> buddyHostIds = topo.getBuddyHostIds(m_localHostId);
-        Set<Integer> peers = Sets.newHashSet();
-        for (Integer hostId : buddyHostIds) {
-            if (hostId > m_localHostId) {
-                peers.add(hostId);
-            }
-        }
-
         int secondaryConn = m_config.partitionGroupConnections - 1; // not including primary connection
-        for (Integer hostId : peers) {
+        for (int hostId : peers) {
+            if (hostId == m_localHostId) {
+                continue;
+            }
             for (int ii = 0; ii < secondaryConn; ii++) {
                 Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
                 if (it.hasNext()) {

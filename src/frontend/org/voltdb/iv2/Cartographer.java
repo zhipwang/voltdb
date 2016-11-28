@@ -52,7 +52,11 @@ import org.voltdb.VoltZK;
 import org.voltdb.VoltZK.MailboxType;
 
 import com.google_voltpatches.common.base.Preconditions;
+import com.google_voltpatches.common.collect.ArrayListMultimap;
 import com.google_voltpatches.common.collect.ImmutableMap;
+import com.google_voltpatches.common.collect.Multimap;
+import com.google_voltpatches.common.collect.Multimaps;
+import com.google_voltpatches.common.collect.Sets;
 
 /**
  * Cartographer provides answers to queries about the components in a cluster.
@@ -287,6 +291,32 @@ public class Cartographer extends StatsSource
         // The list returned by getPartitions includes the MP PID.  Need to remove that for the
         // true partition count.
         return Cartographer.getPartitions(m_zk).size() - 1;
+    }
+
+    /**
+     * Convenient method, given a hostId, return the hostId of its buddies (including itself) which both
+     * belong to the same partition group.
+     * @param hostId
+     * @return A set of host IDs that both belong to the same partition group
+     */
+    public Set<Integer> getBuddyHostIds(int hostId) {
+        Set<Integer> buddyHostIds = Sets.newHashSet();
+
+        Multimap<Integer, Integer> hostByIds = ArrayListMultimap.create();
+        Multimap<Integer, Integer> partitionByIds = ArrayListMultimap.create();
+        for (int pId : getPartitions()) {
+            if (pId == MpInitiator.MP_INIT_PID) {
+                continue;
+            }
+            List<Long> hsIDs = getReplicasForPartition(pId);
+            hsIDs.forEach(hsId -> hostByIds.put(CoreUtils.getHostIdFromHSId(hsId), pId));
+        }
+        assert hostByIds.containsKey(hostId);
+        Multimaps.invertFrom(hostByIds, partitionByIds);
+        for (int partition : hostByIds.asMap().get(hostId)) {
+            buddyHostIds.addAll(partitionByIds.get(partition));
+        }
+        return buddyHostIds;
     }
 
     /**

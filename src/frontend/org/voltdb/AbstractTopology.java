@@ -1276,10 +1276,11 @@ public class AbstractTopology {
     {
         // host descriptions
         HostDescription [] hosts = new HostDescription[sitesPerHostMap.size()];
+        int i = 0;
         for (Map.Entry<Integer, Integer> e : sitesPerHostMap.entrySet()) {
             int hostId = e.getKey();
             int sitesCount = e.getValue();
-            hosts[hostId] = new HostDescription(hostId, sitesCount, hostGroups.get(hostId));
+            hosts[i++] = new HostDescription(hostId, sitesCount, hostGroups.get(hostId));
         }
         // partition descriptions
         int totalSites = 0;
@@ -1288,8 +1289,8 @@ public class AbstractTopology {
         }
         int partitionCount = totalSites / (kfactor + 1);
         PartitionDescription[] partitions = new PartitionDescription[partitionCount];
-        for (int i = 0; i < partitionCount; i++) {
-            partitions[i] = new PartitionDescription(kfactor);
+        for (int j = 0; j < partitionCount; j++) {
+            partitions[j] = new PartitionDescription(kfactor);
         }
 
         // get topology
