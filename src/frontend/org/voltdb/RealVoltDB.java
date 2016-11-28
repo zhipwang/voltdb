@@ -155,6 +155,7 @@ import org.voltdb.utils.LogKeys;
 import org.voltdb.utils.MiscUtils;
 import org.voltdb.utils.PlatformProperties;
 import org.voltdb.utils.SystemStatsCollector;
+import org.voltdb.utils.TopologyZKUtils;
 import org.voltdb.utils.VoltFile;
 import org.voltdb.utils.VoltSampler;
 
@@ -1176,7 +1177,8 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                 );
                 m_globalServiceElector.registerService(m_leaderAppointer);
                 // Create additional connections if there are more than one partition group
-                int partitionGroupCount = topo.getHostCount() / (m_configuredReplicationFactor + 1);
+
+                int partitionGroupCount = m_clusterSettings.get().hostcount() / (m_configuredReplicationFactor + 1);
                 int localHostId = m_messenger.getHostId();
                 Set<Integer> peers = Sets.newHashSet();
                 Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
@@ -1632,7 +1634,10 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                     VoltDB.crashLocalVoltDB(errMsg, false, null);
                 }
             }
-            return AbstractTopology.getTopology(sitesPerHostMap, hostGroups, kfactor);
+            topology = AbstractTopology.getTopology(sitesPerHostMap, hostGroups, kfactor);
+            if (!startAction.doesRejoin()) {
+                TopologyZKUtils.registerTopologyToZK(m_messenger.getZK(), topology);
+            }
         }
         return topology;
     }
