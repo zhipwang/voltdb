@@ -1261,17 +1261,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         ForeignHost fhost = null;
         if (CoreUtils.getSiteIdFromHSId(hsId) < 0 ) {
             // special mailbox, always use primary connection
-            for (ForeignHost f : fhosts) {
-                if (f.isPrimary()) {
-                    fhost = f;
-                    break;
-                }
-            }
-            if (fhost == null) { // unlikely
-                m_networkLog.warn("Attempted to deliver a message to foreign host with id" +
-                            hostId + " but there is no primary connection to the host.");
-                return null;
-            }
+            fhost = getPrimary(fhosts, hostId);
         } else {
             // assign a foreign host for regular mailbox
             fhost = m_fhMapping.get(hsId);
@@ -1318,6 +1308,22 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                            .put(hsId, fh)
                            .build();
         }
+    }
+
+    private ForeignHost getPrimary(ImmutableCollection<ForeignHost> fhosts, int hostId) {
+        ForeignHost fhost = null;
+        for (ForeignHost f : fhosts) {
+            if (f.isPrimary()) {
+                fhost = f;
+                break;
+            }
+        }
+        if (fhost == null) { // unlikely
+            m_networkLog.warn("Attempted to deliver a message to foreign host with id" +
+                        hostId + " but there is no primary connection to the host.");
+            return null;
+        }
+        return fhost;
     }
 
     /*
@@ -1669,6 +1675,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                                 fh.m_listeningAddress, new PicoNetwork(socket));
                         putForeignHost(hostId, fhost);
                         fhost.enableRead(VERBOTEN_THREADS);
+                        System.out.println("Create secondary connection from Host " + m_localHostId + " to Host " + hostId);
                     } catch (Exception e) {
                         m_hostLog.error("Failed to connect to peer nodes.", e);
                         throw new RuntimeException("Failed to establish socket connection with " +

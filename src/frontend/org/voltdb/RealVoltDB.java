@@ -943,6 +943,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                 else {
                     m_configuredNumberOfPartitions = topo.getPartitionCount();
                     partitions = topo.getPartitionIdList(m_messenger.getHostId());
+                    createSecondaryConnections(topo, isRejoin);
                 }
                 for (int ii = 0; ii < partitions.size(); ii++) {
                     Integer partition = partitions.get(ii);
@@ -1176,6 +1177,9 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                         expectSyncSnapshot
                 );
                 m_globalServiceElector.registerService(m_leaderAppointer);
+                if (isRejoin) {
+                    createSecondaryConnections(topo, true);
+                }
             } catch (Exception e) {
                 Throwable toLog = e;
                 if (e instanceof ExecutionException) {
@@ -1203,7 +1207,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                 hostLog.fatal("Error initializing snapshot completion monitor", e);
                 VoltDB.crashLocalVoltDB("Error initializing snapshot completion monitor", true, e);
             }
-
 
             /*
              * Make sure the build string successfully validated
@@ -1236,9 +1239,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                         m_cartographer.getPartitionCount() + ")",
                         true, null);
             }
-
-            // Create additional connections if there are more than one partition group
-            createSecondaryConnections(isRejoin);
 
             schedulePeriodicWorks();
             m_clientInterface.schedulePeriodicWorks();
@@ -1642,15 +1642,16 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         return initiators;
     }
 
-    private void createSecondaryConnections(boolean isRejoin) {
+    private void createSecondaryConnections(AbstractTopology topo, boolean isRejoin) {
         int partitionGroupCount = m_clusterSettings.get().hostcount() / (m_configuredReplicationFactor + 1);
         int localHostId = m_messenger.getHostId();
         Set<Integer> peers = Sets.newHashSet();
-        Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
         if (m_configuredReplicationFactor > 0 && partitionGroupCount > 1) {
             if (isRejoin) {
+                Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
                 peers.addAll(buddyHostIds);
             } else {
+                Set<Integer> buddyHostIds = topo.getBuddyHostIds(localHostId);
                 for (Integer host : buddyHostIds) {
                     if (host > localHostId) {
                         peers.add(host);
