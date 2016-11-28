@@ -1176,24 +1176,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                         expectSyncSnapshot
                 );
                 m_globalServiceElector.registerService(m_leaderAppointer);
-                // Create additional connections if there are more than one partition group
-
-                int partitionGroupCount = m_clusterSettings.get().hostcount() / (m_configuredReplicationFactor + 1);
-                int localHostId = m_messenger.getHostId();
-                Set<Integer> peers = Sets.newHashSet();
-                Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
-                if (m_configuredReplicationFactor > 0 && partitionGroupCount > 1) {
-                    if (isRejoin) {
-                        peers.addAll(buddyHostIds);
-                    } else {
-                        for (Integer host : peers) {
-                            if (host > localHostId) {
-                                peers.add(host);
-                            }
-                        }
-                    }
-                    m_messenger.createAuxiliaryConnections(buddyHostIds);
-                }
             } catch (Exception e) {
                 Throwable toLog = e;
                 if (e instanceof ExecutionException) {
@@ -1254,6 +1236,9 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                         m_cartographer.getPartitionCount() + ")",
                         true, null);
             }
+
+            // Create additional connections if there are more than one partition group
+            createSecondaryConnections(isRejoin);
 
             schedulePeriodicWorks();
             m_clientInterface.schedulePeriodicWorks();
@@ -1655,6 +1640,25 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
             m_partitionsToSitesAtStartupForExportInit.add(partition);
         }
         return initiators;
+    }
+
+    private void createSecondaryConnections(boolean isRejoin) {
+        int partitionGroupCount = m_clusterSettings.get().hostcount() / (m_configuredReplicationFactor + 1);
+        int localHostId = m_messenger.getHostId();
+        Set<Integer> peers = Sets.newHashSet();
+        Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
+        if (m_configuredReplicationFactor > 0 && partitionGroupCount > 1) {
+            if (isRejoin) {
+                peers.addAll(buddyHostIds);
+            } else {
+                for (Integer host : buddyHostIds) {
+                    if (host > localHostId) {
+                        peers.add(host);
+                    }
+                }
+            }
+            m_messenger.createAuxiliaryConnections(peers);
+        }
     }
 
     private final List<ScheduledFuture<?>> m_periodicWorks = new ArrayList<>();
