@@ -97,7 +97,6 @@ import org.voltdb.TheHashinator.HashinatorType;
 import org.voltdb.VoltDB.Configuration;
 import org.voltdb.catalog.Catalog;
 import org.voltdb.catalog.Cluster;
-import org.voltdb.catalog.Database;
 import org.voltdb.catalog.Deployment;
 import org.voltdb.catalog.SnapshotSchedule;
 import org.voltdb.catalog.Systemsettings;
@@ -2035,8 +2034,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
             Catalog catalog = new Catalog();
             // Need these in the dummy catalog
             Cluster cluster = catalog.getClusters().add("cluster");
-            @SuppressWarnings("unused")
-            Database db = cluster.getDatabases().add("database");
+            cluster.getDatabases().add("database");
 
             String result = CatalogUtil.compileDeployment(catalog, deployment, true);
             if (result != null) {
