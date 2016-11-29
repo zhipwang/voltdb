@@ -1263,12 +1263,16 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             // special mailbox, always use primary connection
             fhost = getPrimary(fhosts, hostId);
         } else {
-            // assign a foreign host for regular mailbox
-            fhost = m_fhMapping.get(hsId);
-            if (fhost == null) {
-                int index = Math.abs(m_nextForeignHost.getAndIncrement() % fhosts.size());
-                fhost = (ForeignHost) fhosts.toArray()[index];
-                bindForeignHost(hsId, fhost);
+            if (fhosts.size() != m_config.partitionGroupConnections) {
+                fhost = getPrimary(fhosts, hostId);
+            } else {
+                // assign a foreign host for regular mailbox
+                fhost = m_fhMapping.get(hsId);
+                if (fhost == null) {
+                    int index = Math.abs(m_nextForeignHost.getAndIncrement() % fhosts.size());
+                    fhost = (ForeignHost) fhosts.toArray()[index];
+                    bindForeignHost(hsId, fhost);
+                }
             }
         }
         if (!fhost.isUp()) {

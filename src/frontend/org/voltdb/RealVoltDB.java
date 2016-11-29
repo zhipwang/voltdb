@@ -943,7 +943,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                 else {
                     m_configuredNumberOfPartitions = topo.getPartitionCount();
                     partitions = topo.getPartitionIdList(m_messenger.getHostId());
-                    createSecondaryConnections(topo, isRejoin);
                 }
                 for (int ii = 0; ii < partitions.size(); ii++) {
                     Integer partition = partitions.get(ii);
@@ -1177,9 +1176,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                         expectSyncSnapshot
                 );
                 m_globalServiceElector.registerService(m_leaderAppointer);
-                if (isRejoin) {
-                    createSecondaryConnections(topo, true);
-                }
             } catch (Exception e) {
                 Throwable toLog = e;
                 if (e instanceof ExecutionException) {
@@ -1227,6 +1223,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                     VoltDB.crashLocalVoltDB("Failed to announce ready state.", false, null);
                 }
             }
+            createSecondaryConnections(isRejoin);
 
             if (!m_joining && (m_cartographer.getPartitionCount()) != m_configuredNumberOfPartitions) {
                 for (Map.Entry<Integer, ImmutableList<Long>> entry :
@@ -1642,16 +1639,15 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         return initiators;
     }
 
-    private void createSecondaryConnections(AbstractTopology topo, boolean isRejoin) {
+    private void createSecondaryConnections(boolean isRejoin) {
         int partitionGroupCount = m_clusterSettings.get().hostcount() / (m_configuredReplicationFactor + 1);
         int localHostId = m_messenger.getHostId();
         Set<Integer> peers = Sets.newHashSet();
         if (m_configuredReplicationFactor > 0 && partitionGroupCount > 1) {
-            if (isRejoin) {
                 Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
+            if (isRejoin) {
                 peers.addAll(buddyHostIds);
             } else {
-                Set<Integer> buddyHostIds = topo.getBuddyHostIds(localHostId);
                 for (Integer host : buddyHostIds) {
                     if (host > localHostId) {
                         peers.add(host);
