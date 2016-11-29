@@ -32,12 +32,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-import com.google_voltpatches.common.collect.HashMultimap;
-import com.google_voltpatches.common.collect.Multimap;
 import org.apache.zookeeper_voltpatches.KeeperException;
 import org.apache.zookeeper_voltpatches.ZooKeeper;
 import org.json_voltpatches.JSONException;
-import org.json_voltpatches.JSONObject;
 import org.json_voltpatches.JSONStringer;
 import org.voltcore.logging.VoltLogger;
 import org.voltcore.messaging.BinaryPayloadMessage;
@@ -53,9 +50,13 @@ import org.voltdb.VoltTable.ColumnInfo;
 import org.voltdb.VoltType;
 import org.voltdb.VoltZK;
 import org.voltdb.VoltZK.MailboxType;
-import org.voltdb.compiler.ClusterConfig;
 
+import com.google_voltpatches.common.base.Preconditions;
+import com.google_voltpatches.common.collect.ArrayListMultimap;
 import com.google_voltpatches.common.collect.ImmutableMap;
+import com.google_voltpatches.common.collect.Multimap;
+import com.google_voltpatches.common.collect.Multimaps;
+import com.google_voltpatches.common.collect.Sets;
 
 /**
  * Cartographer provides answers to queries about the components in a cluster.
@@ -89,8 +90,8 @@ public class Cartographer extends StatsSource
         try {
             JSONStringer stringer = new JSONStringer();
             stringer.object();
-            stringer.key(JSON_PARTITION_ID).value(partitionId);
-            stringer.key(JSON_INITIATOR_HSID).value(hsId);
+            stringer.keySymbolValuePair(JSON_PARTITION_ID, partitionId);
+            stringer.keySymbolValuePair(JSON_INITIATOR_HSID, hsId);
             stringer.endObject();
             BinaryPayloadMessage bpm = new BinaryPayloadMessage(new byte[0], stringer.toString().getBytes("UTF-8"));
             int hostId = m_hostMessenger.getHostId();
@@ -211,7 +212,7 @@ public class Cartographer extends StatsSource
             sites.add(leader);
         }
         else {
-            leader = m_iv2Masters.pointInTimeCache().get((Integer)rowKey);
+            leader = m_iv2Masters.pointInTimeCache().get(rowKey);
             sites.addAll(getReplicasForPartition((Integer)rowKey));
         }
 
@@ -231,14 +232,6 @@ public class Cartographer extends StatsSource
         else {
             return getHSIdForSinglePartitionMaster(partitionId);
         }
-    }
-
-    /**
-     * Get the HSID of all the partition masters
-     */
-    public Map<Integer, Long> getHSIdsForSinglePartitionMasters()
-    {
-        return new HashMap<>(m_iv2Masters.pointInTimeCache());
     }
 
     /**
@@ -301,6 +294,32 @@ public class Cartographer extends StatsSource
     }
 
     /**
+     * Convenient method, given a hostId, return the hostId of its buddies (including itself) which both
+     * belong to the same partition group.
+     * @param hostId
+     * @return A set of host IDs that both belong to the same partition group
+     */
+    public Set<Integer> getBuddyHostIds(int hostId) {
+        Set<Integer> buddyHostIds = Sets.newHashSet();
+
+        Multimap<Integer, Integer> hostByIds = ArrayListMultimap.create();
+        Multimap<Integer, Integer> partitionByIds = ArrayListMultimap.create();
+        for (int pId : getPartitions()) {
+            if (pId == MpInitiator.MP_INIT_PID) {
+                continue;
+            }
+            List<Long> hsIDs = getReplicasForPartition(pId);
+            hsIDs.forEach(hsId -> hostByIds.put(CoreUtils.getHostIdFromHSId(hsId), pId));
+        }
+        assert hostByIds.containsKey(hostId);
+        Multimaps.invertFrom(hostByIds, partitionByIds);
+        for (int partition : hostByIds.asMap().get(hostId)) {
+            buddyHostIds.addAll(partitionByIds.get(partition));
+        }
+        return buddyHostIds;
+    }
+
+    /**
      * Given a partition ID, return a list of HSIDs of all the sites with copies of that partition
      */
     public List<Long> getReplicasForPartition(int partition) {
@@ -328,8 +347,8 @@ public class Cartographer extends StatsSource
     /**
      * Given a set of partition IDs, return a map of partition to a list of HSIDs of all the sites with copies of each partition
      */
-    public Multimap<Integer, Long> getReplicasForPartitions(Collection<Integer> partitions) {
-        Multimap<Integer, Long> retval = HashMultimap.create();
+    public Map<Integer, List<Long>> getReplicasForPartitions(Collection<Integer> partitions) {
+        Map<Integer, List<Long>> retval = new HashMap<Integer, List<Long>>();
         List<Pair<Integer,ZKUtil.ChildrenCallback>> callbacks = new ArrayList<Pair<Integer, ZKUtil.ChildrenCallback>>();
 
         for (Integer partition : partitions) {
@@ -343,9 +362,11 @@ public class Cartographer extends StatsSource
             final Integer partition = p.getFirst();
             try {
                 List<String> children = p.getSecond().getChildren();
+                List<Long> sites = new ArrayList<Long>();
                 for (String child : children) {
-                    retval.put(partition, Long.valueOf(child.split("_")[0]));
+                    sites.add(Long.valueOf(child.split("_")[0]));
                 }
+                retval.put(partition, sites);
             } catch (KeeperException.NoNodeException e) {
                 //This can happen when a partition is being removed from the system
             } catch (KeeperException ke) {
@@ -381,25 +402,60 @@ public class Cartographer extends StatsSource
     }
 
     /**
+     * Given the current state of the cluster, compute the partitions which should be replicated on a single new host.
+     * Break this method out to be static and testable independent of ZK, JSON, other ugh.
+     */
+    static public List<Integer> computeReplacementPartitions(Map<Integer, Integer> repsPerPart, int kfactor,
+                                                             int sitesPerHost)
+    {
+        List<Integer> partitions = new ArrayList<Integer>();
+        List<Integer> partSortedByRep = sortKeysByValue(repsPerPart);
+        for (int i = 0; i < partSortedByRep.size(); i++) {
+            int leastReplicatedPart = partSortedByRep.get(i);
+            if (repsPerPart.get(leastReplicatedPart) < kfactor + 1) {
+                partitions.add(leastReplicatedPart);
+                if (partitions.size() == sitesPerHost) {
+                    break;
+                }
+            }
+        }
+        return partitions;
+    }
+
+    public List<Integer> getIv2PartitionsToReplace(int kfactor, int sitesPerHost)
+        throws JSONException
+    {
+        Preconditions.checkArgument(sitesPerHost != VoltDB.UNDEFINED);
+        List<Integer> partitions = getPartitions();
+        hostLog.info("Computing partitions to replace.  Total partitions: " + partitions);
+        Map<Integer, Integer> repsPerPart = new HashMap<Integer, Integer>();
+        for (int pid : partitions) {
+            repsPerPart.put(pid, getReplicaCountForPartition(pid));
+        }
+        List<Integer> partitionsToReplace = computeReplacementPartitions(repsPerPart, kfactor, sitesPerHost);
+        hostLog.info("IV2 Sites will replicate the following partitions: " + partitionsToReplace);
+        return partitionsToReplace;
+    }
+
+    /**
      * Compute the new partition IDs to add to the cluster based on the new topology.
      *
      * @param  zk Zookeeper client
-     * @param topo The new topology which should include the new host count
+     * @param newPartitionTotalCount The new total partition count
      * @return A list of partitions IDs to add to the cluster.
      * @throws JSONException
      */
-    public static List<Integer> getPartitionsToAdd(ZooKeeper zk, JSONObject topo)
+    public static List<Integer> getPartitionsToAdd(ZooKeeper zk, int newPartitionTotalCount)
             throws JSONException
     {
-        ClusterConfig  clusterConfig = new ClusterConfig(topo);
         List<Integer> newPartitions = new ArrayList<Integer>();
         Set<Integer> existingParts = new HashSet<Integer>(getPartitions(zk));
         // Remove MPI
         existingParts.remove(MpInitiator.MP_INIT_PID);
-        int partsToAdd = clusterConfig.getPartitionCount() - existingParts.size();
+        int partsToAdd = newPartitionTotalCount - existingParts.size();
 
         if (partsToAdd > 0) {
-            hostLog.info("Computing new partitions to add. Total partitions: " + clusterConfig.getPartitionCount());
+            hostLog.info("Computing new partitions to add. Total partitions: " + newPartitionTotalCount);
             for (int i = 0; newPartitions.size() != partsToAdd; i++) {
                 if (!existingParts.contains(i)) {
                     newPartitions.add(i);
@@ -414,10 +470,14 @@ public class Cartographer extends StatsSource
     {
         List<MailboxNodeContent> sitesList = new ArrayList<MailboxNodeContent>();
         final Set<Integer> iv2MastersKeySet = m_iv2Masters.pointInTimeCache().keySet();
-        Multimap<Integer, Long> hsidsForPartMap = getReplicasForPartitions(iv2MastersKeySet);
-        for (Map.Entry<Integer, Long> entry : hsidsForPartMap.entries()) {
-            MailboxNodeContent mnc = new MailboxNodeContent(entry.getValue(), entry.getKey());
-            sitesList.add(mnc);
+        Map<Integer, List<Long>> hsidsForPartMap = getReplicasForPartitions(iv2MastersKeySet);
+        for (Map.Entry<Integer, List<Long>> entry : hsidsForPartMap.entrySet()) {
+            Integer partId = entry.getKey();
+            List<Long> hsidsForPart = entry.getValue();
+            for (long hsid : hsidsForPart) {
+                MailboxNodeContent mnc = new MailboxNodeContent(hsid, partId);
+                sitesList.add(mnc);
+            }
         }
         return sitesList;
     }

@@ -53,12 +53,12 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hsqldb_voltpatches.HSQLInterface;
 import org.hsqldb_voltpatches.VoltXMLElement;
+import org.voltcore.TransactionIdManager;
 import org.voltcore.logging.Level;
 import org.voltcore.logging.VoltLogger;
 import org.voltdb.CatalogContext;
 import org.voltdb.ProcInfoData;
 import org.voltdb.RealVoltDB;
-import org.voltdb.TransactionIdManager;
 import org.voltdb.VoltDB;
 import org.voltdb.VoltDBInterface;
 import org.voltdb.catalog.Catalog;
@@ -676,7 +676,10 @@ public class VoltCompiler {
             Deployment deployment = catalogContext != null ? catalogContext.cluster.getDeployment().get("deployment") : null;
             int hostcount = clusterSettings != null ? clusterSettings.hostcount() : 1;
             int kfactor = deployment != null ? deployment.getKfactor() : 0;
-            int sitesPerHost = deployment != null ? deployment.getSitesperhost() : 8;
+            int sitesPerHost = 8;
+            if  (voltdb != null && voltdb.getCatalogContext() != null) {
+                sitesPerHost =  voltdb.getCatalogContext().getNodeSettings().getLocalSitesCount();
+            }
             boolean isPro = MiscUtils.isPro();
 
             long minHeapRqt = RealVoltDB.computeMinimumHeapRqt(isPro, tableCount, sitesPerHost, kfactor);

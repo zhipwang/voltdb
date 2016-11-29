@@ -17,8 +17,6 @@
 
 package org.voltdb.utils;
 
-import static org.voltdb.VoltDB.CONFIG_DIR;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -55,6 +53,7 @@ import org.json_voltpatches.JSONStringer;
 import org.voltcore.utils.CoreUtils;
 import org.voltdb.CLIConfig;
 import org.voltdb.VoltDB;
+import org.voltdb.common.Constants;
 import org.voltdb.compiler.deploymentfile.DeploymentType;
 import org.voltdb.compiler.deploymentfile.PathsType;
 import org.voltdb.processtools.SFTPSession;
@@ -186,16 +185,16 @@ public class Collector {
                 JSONStringer stringer = new JSONStringer();
 
                 stringer.object();
-                stringer.key("server").value(m_config.prefix);
+                stringer.keySymbolValuePair("server", m_config.prefix);
                 stringer.key("files").array();
                 for (String path: collectionFilesList) {
                     stringer.object();
-                    stringer.key("filename").value(path);
+                    stringer.keySymbolValuePair("filename", path);
                     if (Arrays.asList(cmdFilenames).contains(path.split(" ")[0])) {
-                        stringer.key("size").value(0);
+                        stringer.keySymbolValuePair("size", 0);
                     }
                     else {
-                        stringer.key("size").value(new File(path).length());
+                        stringer.keySymbolValuePair("size", new File(path).length());
                     }
                     stringer.endObject();
                 }
@@ -229,7 +228,7 @@ public class Collector {
     }
 
     private static void locatePaths(String voltDbRootPath) {
-        String configLogDirPath = voltDbRootPath + File.separator + CONFIG_DIR + File.separator;
+        String configLogDirPath = voltDbRootPath + File.separator + Constants.CONFIG_DIR + File.separator;
 
         m_configInfoPath = configLogDirPath + "config.json";
         m_catalogJarPath = configLogDirPath + "catalog.jar";

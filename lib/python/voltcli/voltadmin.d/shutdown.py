@@ -22,34 +22,45 @@ from voltcli import checkstats
     description = 'Shutdown the running VoltDB cluster.',
     options = (
         VOLT.BooleanOption('-f', '--force', 'forcing', 'immediate shutdown', default = False),
+        VOLT.BooleanOption('-s', '--save', 'save', 'snapshot database contents', default = False),
     )
 )
 def shutdown(runner):
+    if runner.opts.forcing and runner.opts.save:
+       runner.abort_with_help('You cannot specify both --force and --save options.')
+    shutdown_params = []
+    columns = []
+    zk_pause_txnid = 0
     runner.info('Cluster shutdown in progress.')
-    if runner.opts.forcing==False:
+    if not runner.opts.forcing:
         try:
-            runner.info('Preparing for shutdown')
-            status = runner.call_proc('@PrepareShutdown', [], []).table(0).tuple(0).column_integer(0)
-            if status <> 0:
-                runner.error('The preparation for shutdown failed with status: %d' % status)
-                return
+            runner.info('Preparing for shutdown...')
+            resp = runner.call_proc('@PrepareShutdown', [], [])
+            if resp.status() != 1:
+                runner.abort('The preparation for shutdown failed with status: %d' % resp.response.statusString)
+            zk_pause_txnid = resp.table(0).tuple(0).column_integer(0)
             runner.info('The cluster is paused prior to shutdown.')
-            runner.info('Writing out all queued export data')
+            runner.info('Writing out all queued export data...')
             status = runner.call_proc('@Quiesce', [], []).table(0).tuple(0).column_integer(0)
             if status <> 0:
-                runner.error('The cluster has failed to be quiesce with status: %d' % status)
-                return
-            runner.info('Completing outstanding export and DR transactions...')
-            checkstats.check_export_dr(runner)
-            runner.info('Completing outstanding client transactions.')
+                runner.abort('The cluster has failed to be quiesce with status: %d' % status)
             checkstats.check_clients(runner)
-            runner.info('Completing outstanding importer requests.')
             checkstats.check_importer(runner)
-            runner.info('Cluster is ready for shutdown')
+            checkstats.check_command_log(runner)
+            runner.info('All transactions have been made durable.')
+            if runner.opts.save:
+               columns = [VOLT.FastSerializer.VOLTTYPE_BIGINT]
+               shutdown_params =  [zk_pause_txnid]
+               #save option, check more stats
+               checkstats.check_dr_consumer(runner)
+               runner.info('Starting resolution of external commitments...')
+               checkstats.check_exporter(runner)
+               checkstats.check_dr_producer(runner)
+               runner.info('Saving a final snapshot, The cluster will shutdown after the snapshot is finished...')
+            else:
+                runner.info('Shutting down the cluster...')
         except (KeyboardInterrupt, SystemExit):
             runner.info('The cluster shutdown process has stopped. The cluster is still in a paused state.')
-            runner.info('You may shutdown the cluster with the "voltadmin shutdown --force" command, or continue to wait with "voltadmin shutdown".')
-            return
-    response = runner.call_proc('@Shutdown', [], [], check_status = False)
+            runner.abort('You may shutdown the cluster with the "voltadmin shutdown --force" command, or continue to wait with "voltadmin shutdown".')
+    response = runner.call_proc('@Shutdown', columns, shutdown_params, check_status = False)
     print response
-
