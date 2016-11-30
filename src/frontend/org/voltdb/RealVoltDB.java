@@ -318,6 +318,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
     private volatile boolean m_isRunning = false;
     private boolean m_isRunningWithOldVerb = true;
     private boolean m_isBare = false;
+    private static final String PARTITION_GROUP_CONNECTIONS = "partitionGroupConnections";
 
     /**
      * Startup snapshot nonce taken on shutdown --save
@@ -1644,7 +1645,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         int localHostId = m_messenger.getHostId();
         Set<Integer> peers = Sets.newHashSet();
         if (m_configuredReplicationFactor > 0 && partitionGroupCount > 1) {
-                Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
+            Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
             if (isRejoin) {
                 peers.addAll(buddyHostIds);
             } else {
@@ -1654,7 +1655,19 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                     }
                 }
             }
-            m_messenger.createAuxiliaryConnections(peers);
+            // Basic goal is each host has the same number of connections compare to the number
+            // without partition group layout.
+            int count = (m_clusterSettings.get().hostcount() - 1) - (peers.size() - 1);
+            int numberOfConnections = Math.min(Math.max(1, count), CoreUtils.availableProcessors() / 4);
+            Integer configNumberOfConnections = Integer.getInteger(PARTITION_GROUP_CONNECTIONS);
+            if (configNumberOfConnections != null) {
+                numberOfConnections = configNumberOfConnections;
+                hostLog.info("Overridden PicoNetwork network thread count:" + configNumberOfConnections);
+            } else {
+                hostLog.info("This node has " + numberOfConnections + " PicoNetwork thread" + ((numberOfConnections > 1) ? "s" :""));
+            }
+
+            m_messenger.createAuxiliaryConnections(peers, numberOfConnections);
         }
     }
 
@@ -2395,7 +2408,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         hmconfig.coreBindIds = m_config.m_networkCoreBindings;
         hmconfig.acceptor = criteria;
         hmconfig.localSitesCount = m_config.m_sitesperhost;
-        hmconfig.initPartitionGroupConnections(criteria.getkFactor());
 
         m_messenger = new org.voltcore.messaging.HostMessenger(hmconfig, this);
 

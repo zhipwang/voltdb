@@ -123,7 +123,6 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
 
         private static final String ACCEPTOR = "acceptor";
         private static final String NETWORK_THREADS = "networkThreads";
-        private static final String PARTITION_GROUP_CONNECTIONS = "partitionGroupConnections";
         private static final String BACKWARDS_TIME_FORGIVENESS_WINDOW = "backwardstimeforgivenesswindow";
         private static final String DEAD_HOST_TIMEOUT = "deadhosttimeout";
         private static final String INTERNAL_PORT = "internalport";
@@ -141,7 +140,6 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         public long backwardsTimeForgivenessWindow = 1000 * 60 * 60 * 24 * 7;
         public VoltMessageFactory factory = new VoltMessageFactory();
         public int networkThreads =  Math.max(2, CoreUtils.availableProcessors() / 4);
-        public int partitionGroupConnections;
         public Queue<String> coreBindIds;
         public JoinAcceptor acceptor = null;
         public String group = "0";
@@ -218,22 +216,6 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             }
         }
 
-        public void initPartitionGroupConnections(int kfactor) {
-            try {
-                Integer picoNetworkThreadConfig = Integer.getInteger(PARTITION_GROUP_CONNECTIONS);
-                if ( picoNetworkThreadConfig != null ) {
-                    this.partitionGroupConnections = picoNetworkThreadConfig;
-                    m_networkLog.info("Overridden PicoNetwork thread count: " + this.partitionGroupConnections);
-                } else {
-                    this.partitionGroupConnections = Math.max(1, CoreUtils.availableProcessors() / (4 * kfactor));
-                    m_networkLog.info("The number of PicoNetwork thread has been set to " + this.partitionGroupConnections);
-                }
-
-            } catch (Exception e) {
-                m_networkLog.error("Error setting PicoNetwork thread count", e);
-            }
-        }
-
         @Override
         public String toString() {
             JSONStringer js = new JSONStringer();
@@ -247,7 +229,6 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                 js.keySymbolValuePair(DEAD_HOST_TIMEOUT, deadHostTimeout);
                 js.keySymbolValuePair(BACKWARDS_TIME_FORGIVENESS_WINDOW, backwardsTimeForgivenessWindow);
                 js.keySymbolValuePair(NETWORK_THREADS, networkThreads);
-                js.keySymbolValuePair(PARTITION_GROUP_CONNECTIONS, partitionGroupConnections);
                 js.key(ACCEPTOR).value(acceptor);
                 js.keySymbolValuePair(LOCAL_SITES_COUNT, localSitesCount);
                 js.endObject();
@@ -328,6 +309,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     private boolean m_partitionDetected = false;
 
     private final HostWatcher m_hostWatcher;
+    private int m_numberOfConnections;
 
     private final Object m_mapLock = new Object();
 
@@ -1263,7 +1245,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             // special mailbox, always use primary connection
             fhost = getPrimary(fhosts, hostId);
         } else {
-            if (fhosts.size() != m_config.partitionGroupConnections) {
+            if (fhosts.size() != m_numberOfConnections) {
                 fhost = getPrimary(fhosts, hostId);
             } else {
                 // assign a foreign host for regular mailbox
@@ -1661,9 +1643,10 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         }
     }
 
-    public void createAuxiliaryConnections(Set<Integer> peers) {
+    public void createAuxiliaryConnections(Set<Integer> peers, int numberOfConnections) {
         // Create connections to nodes within the same partition group
-        int secondaryConn = m_config.partitionGroupConnections - 1; // not including primary connection
+        m_numberOfConnections = numberOfConnections;
+        int secondaryConn = numberOfConnections - 1; // not including primary connection
         for (int hostId : peers) {
             if (hostId == m_localHostId) {
                 continue;
@@ -1679,7 +1662,6 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                                 fh.m_listeningAddress, new PicoNetwork(socket));
                         putForeignHost(hostId, fhost);
                         fhost.enableRead(VERBOTEN_THREADS);
-                        System.out.println("Create secondary connection from Host " + m_localHostId + " to Host " + hostId);
                     } catch (Exception e) {
                         m_hostLog.error("Failed to connect to peer nodes.", e);
                         throw new RuntimeException("Failed to establish socket connection with " +
