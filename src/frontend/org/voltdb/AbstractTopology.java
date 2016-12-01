@@ -616,33 +616,44 @@ public class AbstractTopology {
                 mutablePartitionMap);
     }
 
-    public static AbstractTopology mutateAddSite(AbstractTopology currentTopology, int hostId, int partitionId) {
+    public static AbstractTopology mutateAddReplicaSite(AbstractTopology topology, int hostId, int partitionId) {
 
-        //Convert all hosts to mutable hosts to add partitions and sites
         Map<Integer, MutableHost> mutableHostMap = new TreeMap<>();
         Map<Integer, MutablePartition> mutablePartitionMap = new TreeMap<>();
-        convertTopologyToMutables(currentTopology, mutableHostMap, mutablePartitionMap);
 
-        //Make sure that the host and partition are valid
-        MutableHost mutableHost = mutableHostMap.get(hostId);
-        MutablePartition mutablePartition = mutablePartitionMap.get(partitionId);
-        assert(mutableHost != null && mutablePartition != null);
+        // create mutable hosts without partitions
+        for (Host host : topology.hostsById.values()) {
+            int sph = host.targetSiteCount;
+            if (host.id == hostId) {
+                assert(host.partitions.stream().filter(p->p.id == partitionId).collect(Collectors.toList()).isEmpty());
+                sph++;
+            }
+            final MutableHost mutableHost = new MutableHost(host.id, sph, host.haGroup);
+            mutableHostMap.put(host.id, mutableHost);
+        }
 
-        //The host should not have the partition already
-        assert(mutableHost.partitions.stream().filter(p->p.id == partitionId).collect(Collectors.toList()).isEmpty());
-
-        MutablePartition partition = new MutablePartition(mutablePartition.id, mutablePartition.k + 1);
-        partition.leader = mutablePartition.leader;
-
-        MutableHost updatedMutableHost = new MutableHost(mutableHost.id, (mutableHost.targetSiteCount + 1), mutableHost.haGroup);
-        mutablePartition.hosts.add(updatedMutableHost);
-
-        mutableHostMap.put(hostId, updatedMutableHost);
-        mutablePartitionMap.put(partitionId, partition);
-        return convertMutablesToTopology(
-                currentTopology.version + 1,
-                mutableHostMap,
-                mutablePartitionMap);
+        // create partitions
+        for (Partition partition : topology.partitionsById.values()) {
+            int k = partition.k;
+            if (partition.id == partitionId) {
+                assert(!(partition.hostIds.contains(hostId)));
+                k++;
+            }
+            MutablePartition mp = new MutablePartition(partition.id, k);
+            mutablePartitionMap.put(mp.id, mp);
+            for (Integer hId : partition.hostIds) {
+                final MutableHost mutableHost = mutableHostMap.get(hId);
+                mp.hosts.add(mutableHost);
+                mutableHost.partitions.add(mp);
+            }
+            mp.leader = mutableHostMap.get(partition.leaderHostId);
+            if (partition.id == partitionId) {
+                final MutableHost mutableHost = mutableHostMap.get(hostId);
+                mp.hosts.add(mutableHost);
+                mutableHost.partitions.add(mp);
+            }
+        }
+        return convertMutablesToTopology(topology.version, mutableHostMap, mutablePartitionMap);
     }
 
     /**
