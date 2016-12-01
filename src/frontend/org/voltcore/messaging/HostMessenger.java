@@ -1643,15 +1643,14 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         }
     }
 
-    public void createAuxiliaryConnections(Set<Integer> peers, int numberOfConnections) {
-        // Create connections to nodes within the same partition group
-        m_numberOfConnections = numberOfConnections;
-        int secondaryConn = numberOfConnections - 1; // not including primary connection
+    // Create connections to nodes within the same partition group
+    public void createAuxiliaryConnections(Set<Integer> peers, int secondaryConnections) {
+        m_numberOfConnections = secondaryConnections + 1;
         for (int hostId : peers) {
             if (hostId == m_localHostId) {
                 continue;
             }
-            for (int ii = 0; ii < secondaryConn; ii++) {
+            for (int ii = 0; ii < secondaryConnections; ii++) {
                 Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
                 if (it.hasNext()) {
                     ForeignHost fh = it.next();
