@@ -318,7 +318,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
     private volatile boolean m_isRunning = false;
     private boolean m_isRunningWithOldVerb = true;
     private boolean m_isBare = false;
-    private static final String PARTITION_GROUP_CONNECTIONS = "partitionGroupConnections";
+    private static final String SECONDARY_PICONETWORK_THREADS = "secondayPicoNetworkThreads";
 
     /**
      * Startup snapshot nonce taken on shutdown --save
@@ -1655,19 +1655,22 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                     }
                 }
             }
-            // Basic goal is each host has the same number of connections compare to the number
+            // Basic goal is each host should has the same number of connections compare to the number
             // without partition group layout.
-            int count = (m_clusterSettings.get().hostcount() - 1) - (peers.size() - 1);
-            int numberOfConnections = Math.min(Math.max(1, count), CoreUtils.availableProcessors() / 4);
-            Integer configNumberOfConnections = Integer.getInteger(PARTITION_GROUP_CONNECTIONS);
+            int maxConnection = m_clusterSettings.get().hostcount() - 1;
+            int existingConnections = buddyHostIds.size() - 1;
+            int numberOfConnections = Math.min( maxConnection, CoreUtils.availableProcessors() / 4);
+            // exclude primary connection, round up the result.
+            int secondaryConnections = (numberOfConnections - 1) / existingConnections;
+            Integer configNumberOfConnections = Integer.getInteger(SECONDARY_PICONETWORK_THREADS);
             if (configNumberOfConnections != null) {
-                numberOfConnections = configNumberOfConnections;
-                hostLog.info("Overridden PicoNetwork network thread count:" + configNumberOfConnections);
+                secondaryConnections = configNumberOfConnections;
+                hostLog.info("Overridden secondary PicoNetwork network thread count:" + configNumberOfConnections);
             } else {
-                hostLog.info("This node has " + numberOfConnections + " PicoNetwork thread" + ((numberOfConnections > 1) ? "s" :""));
+                hostLog.info("This node has " + secondaryConnections + " secondary PicoNetwork thread" + ((secondaryConnections > 1) ? "s" :""));
             }
 
-            m_messenger.createAuxiliaryConnections(peers, numberOfConnections);
+            m_messenger.createAuxiliaryConnections(peers, secondaryConnections);
         }
     }
 
