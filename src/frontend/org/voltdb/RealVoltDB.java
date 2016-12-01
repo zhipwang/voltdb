@@ -318,6 +318,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
     private volatile boolean m_isRunning = false;
     private boolean m_isRunningWithOldVerb = true;
     private boolean m_isBare = false;
+    private static final String SECONDARY_PICONETWORK_THREADS = "secondayPicoNetworkThreads";
 
     /**
      * Startup snapshot nonce taken on shutdown --save
@@ -1644,7 +1645,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         int localHostId = m_messenger.getHostId();
         Set<Integer> peers = Sets.newHashSet();
         if (m_configuredReplicationFactor > 0 && partitionGroupCount > 1) {
-                Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
+            Set<Integer> buddyHostIds = m_cartographer.getBuddyHostIds(localHostId);
             if (isRejoin) {
                 peers.addAll(buddyHostIds);
             } else {
@@ -1654,7 +1655,22 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                     }
                 }
             }
-            m_messenger.createAuxiliaryConnections(peers);
+            // Basic goal is each host should has the same number of connections compare to the number
+            // without partition group layout.
+            int maxConnection = m_clusterSettings.get().hostcount() - 1;
+            int existingConnections = buddyHostIds.size() - 1;
+            int numberOfConnections = Math.min( maxConnection, CoreUtils.availableProcessors() / 4);
+            // exclude primary connection, round up the result.
+            int secondaryConnections = (numberOfConnections - 1) / existingConnections;
+            Integer configNumberOfConnections = Integer.getInteger(SECONDARY_PICONETWORK_THREADS);
+            if (configNumberOfConnections != null) {
+                secondaryConnections = configNumberOfConnections;
+                hostLog.info("Overridden secondary PicoNetwork network thread count:" + configNumberOfConnections);
+            } else {
+                hostLog.info("This node has " + secondaryConnections + " secondary PicoNetwork thread" + ((secondaryConnections > 1) ? "s" :""));
+            }
+
+            m_messenger.createAuxiliaryConnections(peers, secondaryConnections);
         }
     }
 
@@ -2395,7 +2411,6 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
         hmconfig.coreBindIds = m_config.m_networkCoreBindings;
         hmconfig.acceptor = criteria;
         hmconfig.localSitesCount = m_config.m_sitesperhost;
-        hmconfig.initPartitionGroupConnections(criteria.getkFactor());
 
         m_messenger = new org.voltcore.messaging.HostMessenger(hmconfig, this);
 
