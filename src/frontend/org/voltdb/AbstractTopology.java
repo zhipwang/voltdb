@@ -632,7 +632,6 @@ public class AbstractTopology {
             mutableHostMap.put(host.id, mutableHost);
         }
 
-        // create partitions
         for (Partition partition : topology.partitionsById.values()) {
             int k = partition.k;
             if (partition.id == partitionId) {
