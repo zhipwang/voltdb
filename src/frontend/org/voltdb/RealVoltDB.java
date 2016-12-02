@@ -1650,6 +1650,7 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
                 peers.addAll(buddyHostIds);
             } else {
                 for (Integer host : buddyHostIds) {
+                    // Connection is bidirectional, so only create connections on one side is enough
                     if (host > localHostId) {
                         peers.add(host);
                     }
