@@ -1861,13 +1861,23 @@ public final class InvocationDispatcher {
             if (isReadOnly && (m_defaultConsistencyReadLevel == ReadLevel.FAST)) {
                 isShortCircuitRead = true;
                 initiatorHSId = m_localReplicas.get().get(partition);
+                if (hostLog.isDebugEnabled()) {
+                    hostLog.debug("getting master initiator from Local replica partitions:" + m_localReplicas.toString() + " for partition "
+                            + Integer.toString(partition) + " invocation:" + invocation.getProcName());
+                }
             } else {
                 initiatorHSId = m_cartographer.getHSIdForSinglePartitionMaster(partition);
+                if (hostLog.isDebugEnabled()) {
+                    hostLog.debug("getting master initiator from Cartograpger for single partition " + Integer.toString(partition) + " invocation:" + invocation.getProcName());
+                }
             }
         }
         else {
             // Multi-part transactions go to the multi-part coordinator
             initiatorHSId = m_cartographer.getHSIdForMultiPartitionInitiator();
+            if (hostLog.isDebugEnabled()) {
+                hostLog.debug("getting master initiator from Cartograpger for mp partition. invocation:" + invocation.getProcName());
+            }
             // Treat all MP reads as short-circuit since they can run out-of-order
             // from their arrival order due to the MP Read-only execution pool
             if (isReadOnly) {
