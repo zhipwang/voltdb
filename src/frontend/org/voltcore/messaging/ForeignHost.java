@@ -100,11 +100,13 @@ public class ForeignHost {
             m_isUp = false;
             if (!m_closing)
             {
-                if (!m_hostMessenger.isShuttingDown()) {
-                    VoltDB.dropStackTrace("Received remote hangup from foreign host " + hostnameAndIPAndPort());
-                    hostLog.warn("Received remote hangup from foreign host " + hostnameAndIPAndPort());
+                if (isPrimary()) {
+                    if (!m_hostMessenger.isShuttingDown()) {
+                        VoltDB.dropStackTrace("Received remote hangup from foreign host " + hostnameAndIPAndPort());
+                        hostLog.warn("Received remote hangup from foreign host " + hostnameAndIPAndPort());
+                    }
+                    m_hostMessenger.reportForeignHostFailed(m_hostId);
                 }
-                m_hostMessenger.reportForeignHostFailed(m_hostId);
             }
         }
 
@@ -217,6 +219,7 @@ public class ForeignHost {
         if (!m_isUp) {
             hostLog.warn("Failed to send VoltMessage because connection to host " +
                     CoreUtils.getHostIdFromHSId(destinations[0])+ " is closed");
+            return;
         }
         if (destinations.length == 0) {
             return;
