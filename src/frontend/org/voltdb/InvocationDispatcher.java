@@ -1876,9 +1876,8 @@ public final class InvocationDispatcher {
                 isShortCircuitRead = true;
             }
         }
-
         if (initiatorHSId == null) {
-            hostLog.error(String.format("Failed to find master initiator for partition: %d Transaction not initiated.", partition));
+            hostLog.error(String.format("Failed to find master initiator for partition %d. Transaction not initiated.", partition));
             return false;
         }
 
