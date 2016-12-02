@@ -215,8 +215,8 @@ public class ForeignHost {
     /** Send a message to the network. This public method is re-entrant. */
     void send(final long destinations[], final VoltMessage message) {
         if (!m_isUp) {
-            VoltDB.crashLocalVoltDB("Failed to send VoltMessage because FH doesn't up");
-            return;
+            hostLog.warn("Failed to send VoltMessage because connection to host " +
+                    CoreUtils.getHostIdFromHSId(destinations[0])+ " is closed");
         }
         if (destinations.length == 0) {
             return;
