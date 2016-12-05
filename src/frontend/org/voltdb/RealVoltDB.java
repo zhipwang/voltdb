@@ -1605,22 +1605,19 @@ public class RealVoltDB implements VoltDBInterface, RestoreAgent.Callback, HostM
             } catch (JSONException e) {
                 VoltDB.crashLocalVoltDB("Unable to get topology from Json object", true, e);
             }
-        }
-        else {
+        } else if (!startAction.doesRejoin()) {
             final Set<Integer> liveHostIds = m_messenger.getLiveHostIds();
             Preconditions.checkArgument(hostGroups.keySet().equals(liveHostIds));
             int hostcount = liveHostIds.size();
             int kfactor = m_catalogContext.getDeployment().getCluster().getKfactor();
-            if (!startAction.doesRejoin()) {
-                String errMsg = AbstractTopology.validateLegacyClusterConfig(hostcount, sitesPerHostMap, kfactor);
-                if (errMsg != null) {
-                    VoltDB.crashLocalVoltDB(errMsg, false, null);
-                }
+            String errMsg = AbstractTopology.validateLegacyClusterConfig(hostcount, sitesPerHostMap, kfactor);
+            if (errMsg != null) {
+                VoltDB.crashLocalVoltDB(errMsg, false, null);
             }
             topology = AbstractTopology.getTopology(sitesPerHostMap, hostGroups, kfactor);
-            if (!startAction.doesRejoin()) {
-                TopologyZKUtils.registerTopologyToZK(m_messenger.getZK(), topology);
-            }
+            TopologyZKUtils.registerTopologyToZK(m_messenger.getZK(), topology);
+        } else {
+            topology = TopologyZKUtils.readTopologyFromZK(m_messenger.getZK());
         }
         return topology;
     }
