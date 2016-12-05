@@ -1859,25 +1859,25 @@ public final class InvocationDispatcher {
          */
         if (isSinglePartition && !isEveryPartition) {
             if (isReadOnly && (m_defaultConsistencyReadLevel == ReadLevel.FAST)) {
-                isShortCircuitRead = true;
                 initiatorHSId = m_localReplicas.get().get(partition);
+            }
+            if ( initiatorHSId != null) {
+                isShortCircuitRead = true;
             } else {
                 initiatorHSId = m_cartographer.getHSIdForSinglePartitionMaster(partition);
             }
-        }
-        else {
+        } else {
             // Multi-part transactions go to the multi-part coordinator
             initiatorHSId = m_cartographer.getHSIdForMultiPartitionInitiator();
+
             // Treat all MP reads as short-circuit since they can run out-of-order
             // from their arrival order due to the MP Read-only execution pool
             if (isReadOnly) {
                 isShortCircuitRead = true;
             }
         }
-
         if (initiatorHSId == null) {
-            hostLog.error("Failed to find master initiator for partition: "
-                    + Integer.toString(partition) + ". Transaction not initiated.");
+            hostLog.error(String.format("Failed to find master initiator for partition %d. Transaction not initiated.", partition));
             return false;
         }
 

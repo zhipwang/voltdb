@@ -1305,9 +1305,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             }
         }
         if (fhost == null) { // unlikely
-            m_networkLog.warn("Attempted to deliver a message to foreign host with id" +
+            m_networkLog.warn("Attempted to deliver a message to host " +
                         hostId + " but there is no primary connection to the host.");
-            return null;
         }
         return fhost;
     }
