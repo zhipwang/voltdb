@@ -1861,7 +1861,7 @@ public final class InvocationDispatcher {
             if (isReadOnly && (m_defaultConsistencyReadLevel == ReadLevel.FAST)) {
                 initiatorHSId = m_localReplicas.get().get(partition);
             }
-            if ( initiatorHSId != null) {
+            if (initiatorHSId != null) {
                 isShortCircuitRead = true;
             } else {
                 initiatorHSId = m_cartographer.getHSIdForSinglePartitionMaster(partition);
@@ -1876,10 +1876,7 @@ public final class InvocationDispatcher {
                 isShortCircuitRead = true;
             }
         }
-        if (initiatorHSId == null) {
-            hostLog.error(String.format("Failed to find master initiator for partition %d. Transaction not initiated.", partition));
-            return false;
-        }
+        assert initiatorHSId != null : String.format("Failed to find master initiator for partition: %d Transaction not initiated.", partition);
 
         long handle = cihm.getHandle(isSinglePartition, partition, invocation.getClientHandle(),
                 messageSize, nowNanos, invocation.getProcName(), initiatorHSId, isReadOnly, isShortCircuitRead);

@@ -92,6 +92,7 @@ public class MockVoltDB implements VoltDBInterface
     private final Map<MailboxType, List<MailboxNodeContent>> m_mailboxMap =
             new HashMap<>();
     private boolean m_replicationActive = false;
+    private CommandLog m_cl = null;
 
     public MockVoltDB() {
         this(VoltDB.DEFAULT_PORT, VoltDB.DEFAULT_ADMIN_PORT, -1, VoltDB.DEFAULT_DR_PORT);
@@ -508,7 +509,15 @@ public class MockVoltDB implements VoltDBInterface
 
     @Override
     public CommandLog getCommandLog() {
-        return new DummyCommandLog();
+        if (m_cl != null) {
+            return m_cl;
+        } else {
+            return new DummyCommandLog();
+        }
+    }
+
+    public void setCommandLog(CommandLog cl) {
+        m_cl = cl;
     }
 
     @Override
@@ -701,6 +710,46 @@ public class MockVoltDB implements VoltDBInterface
 
             @Override
             public boolean isCommandLoggingAllowed() {
+                return true;
+            }
+
+            @Override
+            public boolean isAWSMarketplace() {
+                return false;
+            }
+
+            @Override
+            public boolean isEnterprise() {
+                return false;
+            }
+
+            @Override
+            public boolean isPro() {
+                return false;
+            }
+
+            @Override
+            public String licensee() {
+                return null;
+            }
+
+            @Override
+            public Calendar issued() {
+                return null;
+            }
+
+            @Override
+            public String note() {
+                return null;
+            }
+
+            @Override
+            public boolean hardExpiration() {
+                return false;
+            }
+
+            @Override
+            public boolean secondaryInitialization() {
                 return true;
             }
         };
