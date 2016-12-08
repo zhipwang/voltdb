@@ -309,7 +309,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     private boolean m_partitionDetected = false;
 
     private final HostWatcher m_hostWatcher;
-    private int m_numberOfConnections;
+    private boolean m_hasAllSecondaryConnectionCreated = false;
 
     private final Object m_mapLock = new Object();
 
@@ -1052,8 +1052,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
     }
 
     /**
-     * SJ receives the request of creating a new connection from given host id,
-     * create a new FH for this connection.
+     * SocketJoiner receives the request of creating a new connection from given host id,
+     * create a new ForeignHost for this connection.
      */
     @Override
     public void notifyOfConnection(
@@ -1068,7 +1068,6 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                 listeningAddress, new PicoNetwork(socket));
         putForeignHost(hostId, fhost);
         fhost.enableRead(VERBOTEN_THREADS);
-//        m_acceptor.accrue(hostId, jsObj);
 }
 
 
@@ -1201,9 +1200,8 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         if (it.hasNext()) {
             ForeignHost fh = it.next();
             return fh.hostname();
-        } else {
-            return "UNKNOWN";
         }
+        return "UNKNOWN";
     }
 
     /**
@@ -1245,9 +1243,13 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
             // special mailbox, always use primary connection
             fhost = getPrimary(fhosts, hostId);
         } else {
-            if (fhosts.size() != m_numberOfConnections) {
-                fhost = getPrimary(fhosts, hostId);
-            } else {
+            /**
+             *  Because the secondary connections are created rather late, just after cluster mesh network has
+             *  established, but before the whole cluster has been initialized. It's possible that some non-transactional
+             * iv2 messages to be sent through foreign host when there is only one primary connection, So in
+             * case of binding all sites to the primary connection, this check has been added to prevent it.
+             */
+            if (m_hasAllSecondaryConnectionCreated) {
                 // assign a foreign host for regular mailbox
                 fhost = m_fhMapping.get(hsId);
                 if (fhost == null) {
@@ -1255,6 +1257,10 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                     fhost = (ForeignHost) fhosts.toArray()[index];
                     bindForeignHost(hsId, fhost);
                 }
+            } else {
+                // otherwise use primary for a short while
+                // REPAIR_LOG_REQUEST, REPAIR_LOG_RESPONSE,DummyTaskMessage, DUMMY_TRANSACTION_RESPONSE will be sent on primary
+                fhost = getPrimary(fhosts, hostId);
             }
         }
         if (!fhost.isUp()) {
@@ -1633,22 +1639,9 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
         }
     }
 
-    /**
-     * Start all PicoNetwork threads for every FH
-     */
-    public void enableReads() {
-        for (ForeignHost fh : m_foreignHosts.values()) {
-            fh.enableRead(VERBOTEN_THREADS);
-        }
-    }
-
     // Create connections to nodes within the same partition group
     public void createAuxiliaryConnections(Set<Integer> peers, int secondaryConnections) {
-        m_numberOfConnections = secondaryConnections + 1;
         for (int hostId : peers) {
-            if (hostId == m_localHostId) {
-                continue;
-            }
             for (int ii = 0; ii < secondaryConnections; ii++) {
                 Iterator<ForeignHost> it = m_foreignHosts.get(hostId).iterator();
                 if (it.hasNext()) {
@@ -1668,6 +1661,7 @@ public class HostMessenger implements SocketJoiner.JoinHandler, InterfaceToMesse
                 }
             }
         }
+        m_hasAllSecondaryConnectionCreated = true;
     }
 
 }

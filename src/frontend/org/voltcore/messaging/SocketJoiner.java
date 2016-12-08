@@ -784,7 +784,7 @@ public class SocketJoiner {
             socket.read(currentTimeBuf);
         }
         currentTimeBuf.flip();
-        long skew = System.currentTimeMillis() - currentTimeBuf.getLong();
+        currentTimeBuf.getLong();
         assert(currentTimeBuf.remaining() == 0);
         JSONObject jsObj = new JSONObject();
         jsObj.put(TYPE, ConnectionType.REQUEST_CONNECTION.toString());

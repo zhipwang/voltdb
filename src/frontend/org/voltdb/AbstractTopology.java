@@ -386,7 +386,7 @@ public class AbstractTopology {
                 .collect(Collectors.toMap(hd -> hd.hostId, hd -> hd));
 
         // build the full set of immutable hosts, using the HAGroups
-        Set <Host> fullHostSet = new TreeSet<>();
+        Set<Host> fullHostSet = new TreeSet<>();
         for (HAGroup haGroup : haGroups) {
             for (int hostId : haGroup.hostIds) {
                 Host currentHost = currentTopology.hostsById.get(hostId);
@@ -1345,21 +1345,19 @@ public class AbstractTopology {
     }
 
     /**
-     * Given a hostId, return the hostId of its buddies (including itself) which both
-     * belong to the same partition group.
-     * @param topo The abstract topology
+     * get all the hostIds in the partition group where the host with the given host id belongs
      * @param hostId the given hostId
-     * @return
+     * @return all the hostIds in the partition group
      */
-    public Set<Integer> getBuddyHostIds(int hostId) {
-        Set<Integer> buddyHostIds = Sets.newHashSet();
+    public Set<Integer> getPartitionGroupHostIds(int hostId) {
+        Set<Integer> partitionGroupHostIds = Sets.newHashSet();
         for (Integer pid : getPartitionIdList(hostId)) {
             Partition p = partitionsById.get(pid);
             if (p != null) {
-                buddyHostIds.addAll(p.hostIds);
+                partitionGroupHostIds.addAll(p.hostIds);
             }
         }
-        return buddyHostIds;
+        return partitionGroupHostIds;
     }
 
     public List<Integer> getPartitionIdList(int hostId) {

@@ -299,8 +299,8 @@ public class Cartographer extends StatsSource
      * @param hostId
      * @return A set of host IDs that both belong to the same partition group
      */
-    public Set<Integer> getBuddyHostIds(int hostId) {
-        Set<Integer> buddyHostIds = Sets.newHashSet();
+    public Set<Integer> getHostIdsWithinPartitionGroup(int hostId) {
+        Set<Integer> hostIds = Sets.newHashSet();
 
         Multimap<Integer, Integer> hostByIds = ArrayListMultimap.create();
         Multimap<Integer, Integer> partitionByIds = ArrayListMultimap.create();
@@ -314,9 +314,9 @@ public class Cartographer extends StatsSource
         assert hostByIds.containsKey(hostId);
         Multimaps.invertFrom(hostByIds, partitionByIds);
         for (int partition : hostByIds.asMap().get(hostId)) {
-            buddyHostIds.addAll(partitionByIds.get(partition));
+            hostIds.addAll(partitionByIds.get(partition));
         }
-        return buddyHostIds;
+        return hostIds;
     }
 
     /**

@@ -98,15 +98,13 @@ public class ForeignHost {
         public void stopping(Connection c)
         {
             m_isUp = false;
-            if (!m_closing)
+            if (!m_closing && isPrimary())
             {
-                if (isPrimary()) {
-                    if (!m_hostMessenger.isShuttingDown()) {
-                        VoltDB.dropStackTrace("Received remote hangup from foreign host " + hostnameAndIPAndPort());
-                        hostLog.warn("Received remote hangup from foreign host " + hostnameAndIPAndPort());
-                    }
-                    m_hostMessenger.reportForeignHostFailed(m_hostId);
+                if (!m_hostMessenger.isShuttingDown()) {
+                    VoltDB.dropStackTrace("Received remote hangup from foreign host " + hostnameAndIPAndPort());
+                    hostLog.warn("Received remote hangup from foreign host " + hostnameAndIPAndPort());
                 }
+                m_hostMessenger.reportForeignHostFailed(m_hostId);
             }
         }
 
@@ -271,8 +269,7 @@ public class ForeignHost {
          * Try and give some warning when a connection is timing out.
          * Allows you to observe the liveness of the host receiving the heartbeats
          */
-        if ((m_deadHostTimeout != Integer.MAX_VALUE) &&
-                (current_delta > m_logRate)) {
+        if (isPrimary() && current_delta > m_logRate) {
             rateLimitedLogger.log(
                     "Have not received a message from host "
                         + hostnameAndIPAndPort() + " for " + (current_delta / 1000.0) + " seconds",
@@ -282,8 +279,8 @@ public class ForeignHost {
         // set m_isUp to false, so use both that and m_closing to
         // avoid repeat reports of a single node failure
         if ((!m_closing && m_isUp) &&
-            (m_deadHostTimeout != Integer.MAX_VALUE) &&
-            (current_delta > m_deadHostTimeout))
+                isPrimary() &&
+                current_delta > m_deadHostTimeout)
         {
             if (m_deadReportsCount.getAndIncrement() == 0) {
                 hostLog.error("DEAD HOST DETECTED, hostname: " + hostnameAndIPAndPort());
@@ -431,7 +428,6 @@ public class ForeignHost {
         message.put(errBytes);
         message.putInt(cause);
         message.flip();
-        // Ask the first thread to do the favor.
         m_network.enqueue(message);
     }
 
