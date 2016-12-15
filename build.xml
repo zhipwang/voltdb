@@ -185,44 +185,202 @@
     <exclude name="org/voltdb/regressionsuites/*.class"/>
 </patternset>
 
-<!-- 2 old patternsets which will be deprecated after Docker deployed in testing -->
-<patternset id='junit.regression.h1.path'>
-    <!-- Standard junit fileset -->
+<target name="junit_regression_h1_AB" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.AB.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.AB.path'>
     <include name='org/voltdb/regressionsuites/TestA*.class' />
     <include name='org/voltdb/regressionsuites/TestB*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_CD" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.CD.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.CD.path'>
     <include name='org/voltdb/regressionsuites/TestC*.class' />
     <include name='org/voltdb/regressionsuites/TestD*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_EF" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.EF.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.EF.path'>
     <include name='org/voltdb/regressionsuites/TestE*.class' />
     <include name='org/voltdb/regressionsuites/TestF*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_GH" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.GH.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.GH.path'>
     <include name='org/voltdb/regressionsuites/TestG*.class' />
     <include name='org/voltdb/regressionsuites/TestH*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_IJ" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.IJ.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.IJ.path'>
     <include name='org/voltdb/regressionsuites/TestI*.class' />
     <include name='org/voltdb/regressionsuites/TestJ*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_KL" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.KL.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.KL.path'>
     <include name='org/voltdb/regressionsuites/TestK*.class' />
     <include name='org/voltdb/regressionsuites/TestL*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_MN" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.MN.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.MN.path'>
     <include name='org/voltdb/regressionsuites/TestM*.class' />
     <include name='org/voltdb/regressionsuites/TestN*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h1_OP" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h1.OP.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h1.OP.path'>
     <include name='org/voltdb/regressionsuites/TestO*.class' />
     <include name='org/voltdb/regressionsuites/TestP*.class' />
-    <!-- Exclude tests -->
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<patternset id='junit.regression.h1.path'>
+    <patternset refid='junit.regression.h1.AB.path'/>
+    <patternset refid='junit.regression.h1.CD.path'/>
+    <patternset refid='junit.regression.h1.EF.path'/>
+    <patternset refid='junit.regression.h1.GH.path'/>
+    <patternset refid='junit.regression.h1.IJ.path'/>
+    <patternset refid='junit.regression.h1.KL.path'/>
+    <patternset refid='junit.regression.h1.MN.path'/>
+    <patternset refid='junit.regression.h1.OP.path'/>
+    <patternset refid="junit.exclusions"/>
+</patternset>
+
+<target name="junit_regression_h2_QR" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h2.QR.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h2.QR.path'>
+    <include name='org/voltdb/regressionsuites/TestQ*.class' />
+    <include name='org/voltdb/regressionsuites/TestR*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h2_ST" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h2.ST.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h2.ST.path'>
+    <include name='org/voltdb/regressionsuites/TestS*.class' />
+    <include name='org/voltdb/regressionsuites/TestT*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h2_UV" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h2.UV.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h2.UV.path'>
+    <include name='org/voltdb/regressionsuites/TestU*.class' />
+    <include name='org/voltdb/regressionsuites/TestV*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<patternset id='junit.regression.h2.WX.path'>
+    <include name='org/voltdb/regressionsuites/TestW*.class' />
+    <include name='org/voltdb/regressionsuites/TestX*.class' />
+    <patternset refid='junit.exclusions'/>
+</patternset>
+
+<target name="junit_regression_h2_WXYZ" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.h2.WXYZ.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.h2.WXYZ.path'>
+    <include name='org/voltdb/regressionsuites/TestW*.class' />
+    <include name='org/voltdb/regressionsuites/TestX*.class' />
+    <include name='org/voltdb/regressionsuites/TestY*.class' />
+    <include name='org/voltdb/regressionsuites/TestZ*.class' />
     <patternset refid='junit.exclusions'/>
 </patternset>
 
 <patternset id='junit.regression.h2.path'>
     <!-- Standard junit fileset -->
-    <include name='org/voltdb/regressionsuites/TestQ*.class' />
-    <include name='org/voltdb/regressionsuites/TestR*.class' />
-    <include name='org/voltdb/regressionsuites/TestS*.class' />
-    <include name='org/voltdb/regressionsuites/TestT*.class' />
-    <include name='org/voltdb/regressionsuites/TestU*.class' />
-    <include name='org/voltdb/regressionsuites/TestV*.class' />
-    <include name='org/voltdb/regressionsuites/TestW*.class' />
-    <include name='org/voltdb/regressionsuites/TestX*.class' />
-    <include name='org/voltdb/regressionsuites/TestY*.class' />
-    <include name='org/voltdb/regressionsuites/TestZ*.class' />
-    <!-- Exclude tests -->
-    <patternset refid='junit.exclusions'/>
+    <patternset refid='junit.regression.h2.QR.path'/>
+    <patternset refid='junit.regression.h2.ST.path'/>
+    <patternset refid='junit.regression.h2.UV.path'/>
+    <patternset refid='junit.regression.h2.WXYZ.path'/>
 </patternset>
+
 
 <!-- 6 new patternsets which will be used after Docker deployed in testing -->
 <patternset id='junit.regression.p1.path'>
@@ -1890,8 +2048,10 @@ TEST CASES
     <run_junit>
         <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.all.path" />
-                <patternset refid="junit.exclude.regression.path" />
+                <!-- <patternset refid="junit.all.path" /> -->
+                <patternset refid="junit.other.p1.path" />
+                <patternset refid="junit.other.p2.path" />
+                <patternset refid="junit.other.p3.path" />
             </fileset>
         </tests>
     </run_junit>
