@@ -248,13 +248,12 @@
 
 
 <patternset id='junit.regression.all.path'>
-    <include name="org/voltdb/regressionsuites/**/*.class"/>
+    <include name="org/voltdb/regressionsuites/**/Test*.class"/>
 </patternset>
 
 <patternset id='junit.voltdb.all.path'>
-    <include name="org/voltdb/**/*.class"/>
+    <include name="org/voltdb/**/Test*.class"/>
 </patternset>
-
 
 <patternset id='junit.all.path'>
     <!-- Standard junit fileset -->
@@ -267,7 +266,7 @@
 </patternset>
 
 <patternset id='junit.exclude.regression.path'>
-    <exclude name="org/voltdb/regressionsuites/**/*.class"/>
+    <exclude name="org/voltdb/regressionsuites/**/Test*.class"/>
 </patternset>
 
 <target name="junit_regression_ABCD" description="Execute subsection of regression tests">
@@ -358,38 +357,10 @@
         </tests> </run_junit>
 </target>
 
-
-
-<!-- always use casesensitive='no' when using this path in a filepath -->
-<patternset id='junit.regression.SA_SN.path'>
-    <include name='org/voltdb/regressionsuites/TestSA*.class' />
-    <include name='org/voltdb/regressionsuites/TestSB*.class' />
-    <include name='org/voltdb/regressionsuites/TestSC*.class' />
-    <include name='org/voltdb/regressionsuites/TestSD*.class' />
-    <include name='org/voltdb/regressionsuites/TestSE*.class' />
-    <include name='org/voltdb/regressionsuites/TestSF*.class' />
-    <include name='org/voltdb/regressionsuites/TestSG*.class' />
-    <include name='org/voltdb/regressionsuites/TestSH*.class' />
-    <include name='org/voltdb/regressionsuites/TestSI*.class' />
-    <include name='org/voltdb/regressionsuites/TestSJ*.class' />
-    <include name='org/voltdb/regressionsuites/TestSK*.class' />
-    <include name='org/voltdb/regressionsuites/TestSL*.class' />
-    <include name='org/voltdb/regressionsuites/TestSM*.class' />
-    <include name='org/voltdb/regressionsuites/TestSN*.class' />
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<target name="junit_regression_SA_SN" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}' casesensitive="no">
-                <patternset refid="junit.regression.SA_SN.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
-
 <patternset id='junit.regression.sql.path'>
     <include name='org/voltdb/regressionsuites/TestSQL*.class' />
     <include name='org/voltdb/regressionsuites/TestSql*.class' />
+    <patternset refid='junit.exclusions'/>
 </patternset>
 
 <target name="junit_regression_sql" description="Execute subsection of regression tests">
@@ -400,19 +371,10 @@
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.SO_SZ.path'>
-    <include name='org/voltdb/regressionsuites/TestSO*.class' />
-    <include name='org/voltdb/regressionsuites/TestSP*.class' />
-    <include name='org/voltdb/regressionsuites/TestSQ*.class' />
-    <include name='org/voltdb/regressionsuites/TestSR*.class' />
-    <include name='org/voltdb/regressionsuites/TestSS*.class' />
-    <include name='org/voltdb/regressionsuites/TestST*.class' />
-    <include name='org/voltdb/regressionsuites/TestSU*.class' />
-    <include name='org/voltdb/regressionsuites/TestSV*.class' />
-    <include name='org/voltdb/regressionsuites/TestSW*.class' />
-    <include name='org/voltdb/regressionsuites/TestSX*.class' />
-    <include name='org/voltdb/regressionsuites/TestSY*.class' />
-    <include name='org/voltdb/regressionsuites/TestSZ*.class' />
+
+<!-- always use casesensitive='no' when using this path in a filepath -->
+<patternset id='junit.regression.S.path'>
+    <include name='org/voltdb/regressionsuites/TestS*.class' />
     <invert>
         <patternset refid='junit.regression.longtests.path'/>
         <patternset refid='junit.regression.sql.path'/>
@@ -420,10 +382,10 @@
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_SO_SZ" description="Execute subsection of regression tests">
+<target name="junit_regression_S" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}' casesensitive="no">
-                <patternset refid="junit.regression.SO_SZ.path" />
+                <patternset refid="junit.regression.S.path" />
             </fileset>
         </tests> </run_junit>
 </target>
