@@ -182,20 +182,29 @@
     <patternset refid="junit.exclusions"/>
 </patternset>
 
-<patternset id='junit.voltdb.path'>
+<patternset id='junit.voltdb.testae.path'>
+    <include name='org/voltdb/TestA*.class'/>
+    <include name='org/voltdb/TestB*.class'/>
+    <include name='org/voltdb/TestC*.class'/>
+    <include name='org/voltdb/TestD*.class'/>
+    <include name='org/voltdb/TestE*.class'/>
+    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
+    <patternset refid="junit.exclusions"/>
+</patternset>
+
+<!-- everything 1 level under org.voltdb/ except what was in junit.voltdb.testae.path -->
+<patternset id='junit.voltdb.testfz.path'>
     <include name='org/voltdb/Test*.class'/>
+    <invert>
+        <patternset id='junit.voltdb.testae.path'/>
+    </invert>
     <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
     <patternset refid="junit.exclusions"/>
 </patternset>
 
-<patternset id='junit.voltdb.c.path'>
+
+<patternset id='junit.voltdb.cd.path'>
     <include name='org/voltdb/c*/Test*.class'/>
-    <exclude name='org/voltdb/Test*.class'/>
-    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
-    <patternset refid="junit.exclusions"/>
-</patternset>
-
-<patternset id='junit.voltdb.d.path'>
     <include name='org/voltdb/d*/Test*.class'/>
     <exclude name='org/voltdb/Test*.class'/>
     <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
@@ -212,15 +221,20 @@
 </patternset>
 
 
+<patternset id='junit.regression.all.path'>
+    <include name="org/voltdb/regressionsuites/**/*.class"/>
+</patternset>
+
+<patternset id='junit.voltdb.all.path'>
+    <include name="org/voltdb/**/*.class"/>
+</patternset>
+
 
 <patternset id='junit.all.path'>
     <!-- Standard junit fileset -->
     <patternset refid='junit.hsqldb.path'/>
     <patternset refid='junit.voltcore.path'/>
-    <patternset refid='junit.voltdb.path'/>
-    <patternset refid='junit.voltdb.c.path'/>
-    <patternset refid='junit.voltdb.d.path'/>
-    <patternset refid='junit.voltdb.other.path'/>
+    <patternset refid='junit.regression.all.path'/>
     <!-- Exclude tests -->
     <patternset refid="junit.exclusions"/>
 </patternset>
@@ -229,145 +243,95 @@
     <exclude name="org/voltdb/regressionsuites/**/*.class"/>
 </patternset>
 
-<target name="junit_regression_h1_AB" description="Execute subsection of regression tests">
+<target name="junit_regression_ABCD" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.AB.path" />
+                <patternset refid="junit.regression.ABCD.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.h1.AB.path'>
+<!-- this takes about 17 minutes -->
+<patternset id='junit.regression.ABCD.path'>
     <include name='org/voltdb/regressionsuites/TestA*.class' />
     <include name='org/voltdb/regressionsuites/TestB*.class' />
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<target name="junit_regression_h1_CD" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.CD.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
-
-<patternset id='junit.regression.h1.CD.path'>
     <include name='org/voltdb/regressionsuites/TestC*.class' />
     <include name='org/voltdb/regressionsuites/TestD*.class' />
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_h1_EF" description="Execute subsection of regression tests">
+<target name="junit_regression_EF" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.EF.path" />
+                <patternset refid="junit.regression.EF.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.h1.EF.path'>
+<!-- this takes about 25 minutes -->
+<patternset id='junit.regression.EF.path'>
     <include name='org/voltdb/regressionsuites/TestE*.class' />
     <include name='org/voltdb/regressionsuites/TestF*.class' />
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_h1_GH" description="Execute subsection of regression tests">
+<target name="junit_regression_GHIJ" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.GH.path" />
+                <patternset refid="junit.regression.GHIJ.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.h1.GH.path'>
+<!-- this takes about 35 minutes -->
+<patternset id='junit.regression.GHIJ.path'>
     <include name='org/voltdb/regressionsuites/TestG*.class' />
     <include name='org/voltdb/regressionsuites/TestH*.class' />
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<target name="junit_regression_h1_IJ" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.IJ.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
-
-<patternset id='junit.regression.h1.IJ.path'>
     <include name='org/voltdb/regressionsuites/TestI*.class' />
     <include name='org/voltdb/regressionsuites/TestJ*.class' />
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_h1_KL" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.KL.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
 
-<patternset id='junit.regression.h1.KL.path'>
+
+<!-- this takes about 25 minutes -->
+<patternset id='junit.regression.KLMN.path'>
     <include name='org/voltdb/regressionsuites/TestK*.class' />
     <include name='org/voltdb/regressionsuites/TestL*.class' />
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<target name="junit_regression_h1_MN" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.MN.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
-
-<patternset id='junit.regression.h1.MN.path'>
     <include name='org/voltdb/regressionsuites/TestM*.class' />
     <include name='org/voltdb/regressionsuites/TestN*.class' />
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_h1_OP" description="Execute subsection of regression tests">
+<target name="junit_regression_KLMN" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.OP.path" />
+                <patternset refid="junit.regression.KLMN.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.h1.OP.path'>
+
+<patternset id='junit.regression.OPQR.path'>
     <include name='org/voltdb/regressionsuites/TestO*.class' />
     <include name='org/voltdb/regressionsuites/TestP*.class' />
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<patternset id='junit.regression.h1.path'>
-    <patternset refid='junit.regression.h1.AB.path'/>
-    <patternset refid='junit.regression.h1.CD.path'/>
-    <patternset refid='junit.regression.h1.EF.path'/>
-    <patternset refid='junit.regression.h1.GH.path'/>
-    <patternset refid='junit.regression.h1.IJ.path'/>
-    <patternset refid='junit.regression.h1.KL.path'/>
-    <patternset refid='junit.regression.h1.MN.path'/>
-    <patternset refid='junit.regression.h1.OP.path'/>
-    <patternset refid="junit.exclusions"/>
-</patternset>
-
-<target name="junit_regression_h1_QR" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.QR.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
-
-<patternset id='junit.regression.h1.QR.path'>
     <include name='org/voltdb/regressionsuites/TestQ*.class' />
     <include name='org/voltdb/regressionsuites/TestR*.class' />
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<patternset id='junit.regression.h1.SA_SN.path'>
+<target name="junit_regression_OPQR" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.OPQR.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+
+
+<!-- always use casesensive='no' when using this path in a filepath -->
+<patternset id='junit.regression.SA_SN.path'>
     <include name='org/voltdb/regressionsuites/TestSA*.class' />
     <include name='org/voltdb/regressionsuites/TestSB*.class' />
     <include name='org/voltdb/regressionsuites/TestSC*.class' />
@@ -385,15 +349,15 @@
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_h1_SA_SN" description="Execute subsection of regression tests">
+<target name="junit_regression_SA_SN" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}' casesensitive="no">
-                <patternset refid="junit.regression.h1.SA_SN.path" />
+                <patternset refid="junit.regression.SA_SN.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.h1.SO_SZ_T.path'>
+<patternset id='junit.regression.SO_SZ_T.path'>
     <include name='org/voltdb/regressionsuites/TestSO*.class' />
     <include name='org/voltdb/regressionsuites/TestSP*.class' />
     <include name='org/voltdb/regressionsuites/TestSQ*.class' />
@@ -410,37 +374,25 @@
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_h1_SO_SZ" description="Execute subsection of regression tests">
+<target name="junit_regression_SO_SZ_T" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}' casesensitive="no">
-                <patternset refid="junit.regression.h1.SO_SZ.path" />
+                <patternset refid="junit.regression.SO_SZ_T.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<target name="junit_regression_h1_UV" description="Execute subsection of regression tests">
+<target name="junit_regression_UVWXYZ" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.UV.path" />
+                <patternset refid="junit.regression.UVWZYZ.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.h1.UV.path'>
+<patternset id='junit.regression.UVWXYZ.path'>
     <include name='org/voltdb/regressionsuites/TestU*.class' />
     <include name='org/voltdb/regressionsuites/TestV*.class' />
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<target name="junit_regression_h1_WXYZ" description="Execute subsection of regression tests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.WXYZ.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
-
-<patternset id='junit.regression.h1.WXYZ.path'>
     <include name='org/voltdb/regressionsuites/TestW*.class' />
     <include name='org/voltdb/regressionsuites/TestX*.class' />
     <include name='org/voltdb/regressionsuites/TestY*.class' />
@@ -461,309 +413,6 @@
         </tests> </run_junit>
 </target>
 
-
-<patternset id='junit.regression.h2.path'>
-    <!-- Standard junit fileset -->
-    <patternset refid='junit.regression.h1.QR.path'/>
-    <patternset refid='junit.regression.h1.SA_SN.path'/>
-    <patternset refid='junit.regression.h1.SO_SZ_T.path'/>
-    <patternset refid='junit.regression.h1.UV.path'/>
-    <patternset refid='junit.regression.h1.WXYZ.path'/>
-    <patternset refid='junit.regression.statistics.path'/>
-</patternset>
-
-
-<!-- 6 new patternsets which will be used after Docker deployed in testing -->
-<patternset id='junit.regression.p1.path'>
-    <!-- Standard junit fileset -->
-    <include name='org/voltdb/regressionsuites/TestCatalogUpdateSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestDecimalRoundingSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestEELibraryLoaderSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestElasticJoinSettings.class' />
-    <include name='org/voltdb/regressionsuites/TestEmptySchema.class' />
-    <include name='org/voltdb/regressionsuites/TestExecutionSiteDeath.class' />
-    <include name='org/voltdb/regressionsuites/TestExistsNotFactoringSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestExplainCommandSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestFailureDetectSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestFunctionsForJSON.class' />
-    <include name='org/voltdb/regressionsuites/TestGiantDeleteSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestInsertIntoSelectSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestJMXPort.class' />
-    <include name='org/voltdb/regressionsuites/TestJoinsSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestMPMultiRoundTripSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestMultiPartitionSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestQueryTimeout.class' />
-    <include name='org/voltdb/regressionsuites/TestReplicationSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestSQLTypesSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestStatisticsSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestStopNode.class' />
-    <include name='org/voltdb/regressionsuites/TestStopNode2NK1PartitionDetection.class' />
-    <include name='org/voltdb/regressionsuites/TestSystemProcedureSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestTableCountSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestUpdateDeployment.class' />
-    <!-- Exclude tests -->
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<patternset id='junit.regression.p2.path'>
-    <!-- Standard junit fileset -->
-    <include name='org/voltdb/regressionsuites/TestCRUDSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestCatalogUpdateAutoUpgradeSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestCompactingViewsSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestDecimalDefaults.class' />
-    <include name='org/voltdb/regressionsuites/TestFailuresSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestFunctionsForVoltDBSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestGroupByComplexMaterializedViewSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestGroupBySuite.class' />
-    <include name='org/voltdb/regressionsuites/TestHttpPort.class' />
-    <include name='org/voltdb/regressionsuites/TestIndexColumnLessThanSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestIndexLimitSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestIndexMemoryOwnershipSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestIndexOverflowSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestIndexesSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestLimitOffsetSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestLoadingSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestMaxSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestPartialIndexesSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestPartitionDetection.class' />
-    <include name='org/voltdb/regressionsuites/TestPasswordMaskSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestRollbackSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestSPBasecaseSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestSaveRestoreSysprocSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestSecurityNoAdminUser.class' />
-    <include name='org/voltdb/regressionsuites/TestShutdown.class' />
-    <include name='org/voltdb/regressionsuites/TestSqlAggregateSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestSqlUpdateSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestSqlUpsertSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestUnionSuite.class' />
-    <include name='org/voltdb/regressionsuites/TestUpdateClasses.class' />
-
-    <!-- Exclude tests -->
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<patternset id='junit.regression.p3.path'>
-    <!-- Standard junit fileset -->
-    <include name="org/voltdb/regressionsuites/Test*.class"/>
-
-    <!-- Exclude tests -->
-    <invert>
-        <patternset refid="junit.regression.p1.path"/>
-        <patternset refid="junit.regression.p2.path"/>
-    </invert>
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<patternset id='junit.other.p1.path'>
-    <!-- Standard junit fileset -->
-    <include name='org/hsqldb_voltpatches/TestJDBC.class' />
-    <include name='org/voltcore/agreement/TestMeshArbiter.class' />
-    <include name='org/voltcore/messaging/TestHostMessenger.class' />
-    <include name='org/voltcore/messaging/TestMessaging.class' />
-    <include name='org/voltcore/messaging/TestSiteFailureMessage.class' />
-    <include name='org/voltcore/network/TestNIOReadStream.class' />
-    <include name='org/voltcore/network/TestNIOWriteStream.class' />
-    <include name='org/voltcore/utils/TestCOWMap.class' />
-    <include name='org/voltcore/utils/TestCOWSortedMap.class' />
-    <include name='org/voltcore/utils/TestMurmur3.class' />
-    <include name='org/voltcore/utils/TestRateLimitedLogger.class' />
-    <include name='org/voltcore/zk/TestBabySitter.class' />
-    <include name='org/voltcore/zk/TestMapCache.class' />
-    <include name='org/voltcore/zk/TestStateMachine.class' />
-    <include name='org/voltdb/TestAdHocCLReplay.class' />
-    <include name='org/voltdb/TestAdhocCompilerErrorMessages.class' />
-    <include name='org/voltdb/TestAdhocCreateDropRole.class' />
-    <include name='org/voltdb/TestAdhocCreateStatementProc.class' />
-    <include name='org/voltdb/TestAdhocDropTable.class' />
-    <include name='org/voltdb/TestAdhocWithOnlyComment.class' />
-    <include name='org/voltdb/TestBuildString.class' />
-    <include name='org/voltdb/TestCLReplayAutoCatalogUpgrade.class' />
-    <include name='org/voltdb/TestExportInsertIntoSelectSuite.class' />
-    <include name='org/voltdb/TestJoin.class' />
-    <include name='org/voltdb/TestPortPirate.class' />
-    <include name='org/voltdb/TestReplicatedInvocation.class' />
-    <include name='org/voltdb/TestRoutingEdgeCases.class' />
-    <include name='org/voltdb/TestSimpleCJK.class' />
-    <include name='org/voltdb/TestSnapshotDaemon.class' />
-    <include name='org/voltdb/TestSnapshotDaemonLeaderElection.class' />
-    <include name='org/voltdb/TestSnapshotIOAgent.class' />
-    <include name='org/voltdb/TestSnapshotInitiationInfo.class' />
-    <include name='org/voltdb/TestStartAction.class' />
-    <include name='org/voltdb/TestStatsAgent.class' />
-    <include name='org/voltdb/TestStatsProcInputTable.class' />
-    <include name='org/voltdb/TestStatsProcOutputTable.class' />
-    <include name='org/voltdb/TestStatsProcProfTable.class' />
-    <include name='org/voltdb/TestTableHelper.class' />
-    <include name='org/voltdb/TestTheHashinator.class' />
-    <include name='org/voltdb/TestTransactionIdManager.class' />
-    <include name='org/voltdb/TestTwoSitePlans.class' />
-    <include name='org/voltdb/TestVarBinaryPartition.class' />
-    <include name='org/voltdb/TestVoltDB.class' />
-    <include name='org/voltdb/TestVoltTable.class' />
-    <include name='org/voltdb/TestVoltTableUtil.class' />
-    <include name='org/voltdb/TestVoltType.class' />
-    <include name='org/voltdb/canonicalddl/TestCanonicalDDLThroughSQLcmd.class' />
-    <include name='org/voltdb/client/TestDistributer.class' />
-    <include name='org/voltdb/client/TestHashinatorLite.class' />
-    <include name='org/voltdb/client/TestProcedureInvocation.class' />
-    <include name='org/voltdb/common/TestPermission.class' />
-    <include name='org/voltdb/compiler/TestAsyncCompilerAgent.class' />
-    <include name='org/voltdb/compiler/TestCatalogVersionUpgrade.class' />
-    <include name='org/voltdb/compiler/TestClassMatcher.class' />
-    <include name='org/voltdb/compiler/TestClusterCompiler.class' />
-    <include name='org/voltdb/compiler/TestDDLCompiler.class' />
-    <include name='org/voltdb/compiler/TestLiveDDLCompiler.class' />
-    <include name='org/voltdb/compiler/TestPartitionDDL.class' />
-    <include name='org/voltdb/compiler/TestProcCompiler.class' />
-    <include name='org/voltdb/compiler/TestVoltCompiler.class' />
-    <include name='org/voltdb/dr2/TestDR2OverReplicationFail.class' />
-    <include name='org/voltdb/dr2/TestDR2PartitionGateway.class' />
-    <include name='org/voltdb/dr2/TestDR2Producer.class' />
-    <include name='org/voltdb/dr2/TestDR2SecondaryRejoin.class' />
-    <include name='org/voltdb/dr2/TestDRConnectionService.class' />
-    <include name='org/voltdb/dr2/TestDRConsumerCoordinator.class' />
-    <include name='org/voltdb/dr2/TestDRConsumerDispatcher.class' />
-    <include name='org/voltdb/dr2/TestDRConsumerReceiveState.class' />
-    <include name='org/voltdb/dr2/TestDRConsumerSyncState.class' />
-    <include name='org/voltdb/dr2/TestDRConsumerTaskUtils.class' />
-    <include name='org/voltdb/dr2/TestDRNormalBufferReceiver.class' />
-    <include name='org/voltdb/dr2/TestDRNormalPartitionBufferReceiver.class' />
-    <include name='org/voltdb/dr2/TestDRSnapshotBufferReceiver.class' />
-    <include name='org/voltdb/dr2/TestDRSnapshotPartitionBufferReceiver.class' />
-    <include name='org/voltdb/dr2/snapshot/TestSyncSnapshotBufferQueue.class' />
-    <include name='org/voltdb/dr2/snapshot/TestSyncSnapshotTimeout.class' />
-    <include name='org/voltdb/dtxn/TestSiteTracker.class' />
-    <include name='org/voltdb/dtxn/TestStoredProcedureErrorTrap.class' />
-    <include name='org/voltdb/export/TestExportDataSource.class' />
-    <include name='org/voltdb/export/TestExportGeneration.class' />
-    <include name='org/voltdb/export/TestExportV2Suite.class' />
-    <include name='org/voltdb/export/TestExportV2SuitePro.class' />
-    <include name='org/voltdb/exportclient/TestJDBCExportClient.class' />
-    <include name='org/voltdb/exportclient/decode/TestEndpointExpander.class' />
-    <include name='org/voltdb/exportclient/decode/TestJsonObjectDecoer.class' />
-    <include name='org/voltdb/exportclient/decode/TestJsonStringDecoder.class' />
-    <include name='org/voltdb/exportclient/decode/TestStringArrayDecoder.class' />
-    <include name='org/voltdb/exportclient/kafka/TestKafkaExportClient.class' />
-    <include name='org/voltdb/groovy/TestGroovyDeployment.class' />
-    <include name='org/voltdb/importer/TestChannelDistributer.class' />
-    <include name='org/voltdb/iv2/TestCartographer.class' />
-    <include name='org/voltdb/iv2/TestLeaderAppointer.class' />
-    <include name='org/voltdb/iv2/TestLeaderCache.class' />
-    <include name='org/voltdb/iv2/TestMpPromoteAlgo.class' />
-    <include name='org/voltdb/iv2/TestMpTransactionState.class' />
-    <include name='org/voltdb/iv2/TestMpTransactionTaskQueue.class' />
-    <include name='org/voltdb/iv2/TestRepairLog.class' />
-    <include name='org/voltdb/iv2/TestUniqueIdGenerator.class' />
-    <include name='org/voltdb/jdbc/TestJDBCDriver.class' />
-    <include name='org/voltdb/utils/TestCommandLine.class' />
-    <include name='org/voltdb/utils/TestCommandLogTracker.class' />
-    <include name='org/voltdb/utils/TestEncoder.class' />
-    <include name='org/voltdb/utils/TestHDFSUtils.class' />
-    <include name='org/voltdb/utils/TestInMemoryJarfile.class' />
-    <include name='org/voltdb/utils/TestJDBCLoader.class' />
-    <include name='org/voltdb/utils/TestSplitSQLStatements.class' />
-    <include name='org/voltdb/utils/TestSqlCmdErrorHandling.class' />
-
-    <!-- Exclude tests -->
-    <patternset refid='junit.exclusions'/>
-</patternset>
-
-<patternset id='junit.other.p2.path'>
-    <!-- Standard junit fileset -->
-    <include name='org/voltcore/agreement/TestAgreementSeeker.class' />
-    <include name='org/voltcore/agreement/TestFuzzMeshArbiter.class' />
-    <include name='org/voltdb/TestAdhocAlterTable.class' />
-    <include name='org/voltdb/TestAdhocCreateTable.class' />
-    <include name='org/voltdb/TestAdhocProcedureRoles.class' />
-    <include name='org/voltdb/TestCLReplayLiveDDLSwitch.class' />
-    <include name='org/voltdb/TestCLReplayStringParam.class' />
-    <include name='org/voltdb/TestClientInterface.class' />
-    <include name='org/voltdb/TestClientInterfaceHandleManager.class' />
-    <include name='org/voltdb/TestCommandLogReplayState.class' />
-    <include name='org/voltdb/TestDefaultDeployment.class' />
-    <include name='org/voltdb/TestEELibraryLoader.class' />
-    <include name='org/voltdb/TestEmptyCatalog.class' />
-    <include name='org/voltdb/TestExpectations.class' />
-    <include name='org/voltdb/TestExportGroups.class' />
-    <include name='org/voltdb/TestExportRejoin.class' />
-    <include name='org/voltdb/TestExportRollback.class' />
-    <include name='org/voltdb/TestExportSnapshot.class' />
-    <include name='org/voltdb/TestExportStatsSuite.class' />
-    <include name='org/voltdb/TestExportSuite.class' />
-    <include name='org/voltdb/TestJavaAssertionsAreOn.class' />
-    <include name='org/voltdb/TestJdbcDatabaseMetaDataGenerator.class' />
-    <include name='org/voltdb/TestLikeQueries.class' />
-    <include name='org/voltdb/TestLiveDDLAfterAutoUpgrade.class' />
-    <include name='org/voltdb/TestLiveDDLSchemaSwitch.class' />
-    <include name='org/voltdb/TestMixedVersionClusters.class' />
-    <include name='org/voltdb/TestRejoinWithCatalogUpdates.class' />
-    <include name='org/voltdb/TestRestoreAgent.class' />
-    <include name='org/voltdb/TestVoltLicense.class' />
-    <include name='org/voltdb/catalog/TestCatalogSerialization.class' />
-    <include name='org/voltdb/catalog/TestDRCatalogDiffs.class' />
-    <include name='org/voltdb/client/TestClientFeatures.class' />
-    <include name='org/voltdb/dr2/TestDR2IdempotencyFilter.class' />
-    <include name='org/voltdb/dr2/TestDR2InvocationBuffer.class' />
-    <include name='org/voltdb/dr2/TestDR2InvocationBufferQueue.class' />
-    <include name='org/voltdb/dr2/TestDR2NewInstanceReplacesOld.class' />
-    <include name='org/voltdb/dr2/snapshot/TestSyncSnapshotResultCollector.class' />
-    <include name='org/voltdb/dtxn/TestNonDetermisticSeppuku.class' />
-    <include name='org/voltdb/export/TestExportSnapshotPreservesSequenceNumber.class' />
-    <include name='org/voltdb/export/TestStreamBlockQueue.class' />
-    <include name='org/voltdb/exportclient/TestElasticSearchHttpExportClient.class' />
-    <include name='org/voltdb/exportclient/TestExportDecoderBase.class' />
-    <include name='org/voltdb/exportclient/TestExportToFileClient.class' />
-    <include name='org/voltdb/exportclient/TestHttpExportClient.class' />
-    <include name='org/voltdb/exportclient/decode/TestEntityDecoders.class' />
-    <include name='org/voltdb/expressions/TestExpressionUtil.class' />
-    <include name='org/voltdb/fullddlfeatures/TestDDLFeatures.class' />
-    <include name='org/voltdb/iv2/TestReplaySequencer.class' />
-    <include name='org/voltdb/iv2/TestSite.class' />
-    <include name='org/voltdb/iv2/TestSpPromoteAlgo.class' />
-    <include name='org/voltdb/iv2/TestSpSchedulerDedupe.class' />
-    <include name='org/voltdb/iv2/TestSpSchedulerSpHandle.class' />
-    <include name='org/voltdb/iv2/TestTransactionTaskQueue.class' />
-    <include name='org/voltdb/iv2/TestTxnEgo.class' />
-    <include name='org/voltdb/jdbc/TestJDBCConnectionFail.class' />
-    <include name='org/voltdb/jdbc/TestJDBCMultiConnection.class' />
-    <include name='org/voltdb/jdbc/TestJDBCMultiNodeConnection.class' />
-    <include name='org/voltdb/jdbc/TestJDBCQueries.class' />
-    <include name='org/voltdb/jdbc/TestJDBCResultSet.class' />
-    <include name='org/voltdb/jdbc/TestJDBCSecurityEnabled.class' />
-    <include name='org/voltdb/jni/TestExecutionEngine.class' />
-    <include name='org/voltdb/jni/TestFragmentProgressUpdate.class' />
-    <include name='org/voltdb/join/TestDataMigrationSnapshotPlanner.class' />
-    <include name='org/voltdb/join/TestElasticJoinUtils.class' />
-    <include name='org/voltdb/messaging/TestVoltMessageSerialization.class' />
-    <include name='org/voltdb/planner/TestAdHocPlans.class' />
-    <include name='org/voltdb/planner/TestDeterminism.class' />
-    <include name='org/voltdb/planner/TestIndexSelection.class' />
-    <include name='org/voltdb/planner/TestMultipleOuterJoinPlans.class' />
-    <include name='org/voltdb/planner/TestPlannerTool.class' />
-    <include name='org/voltdb/planner/TestPlansCount.class' />
-    <include name='org/voltdb/planner/TestPlansGroupBy.class' />
-    <include name='org/voltdb/planner/TestPlansJoin.class' />
-    <include name='org/voltdb/planner/TestPlansMatView.class' />
-    <include name='org/voltdb/planner/TestPlansScalarSubQueries.class' />
-    <include name='org/voltdb/planner/TestPlansTPCC.class' />
-    <include name='org/voltdb/planner/TestPushDownAggregates.class' />
-    <include name='org/voltdb/planner/TestSelfJoins.class' />
-    <include name='org/voltdb/planner/TestVerbotenPlans.class' />
-    <include name='org/voltdb/plannodes/TestNestLoopPlanNode.class' />
-    <include name='org/voltdb/rejoin/TestIv2RejoinCoordinator.class' />
-    <include name='org/voltdb/rejoin/TestPauselessRejoinEndToEnd.class' />
-    <include name='org/voltdb/utils/TestCSVLoaderCommandLoggingMP.class' />
-    <include name='org/voltdb/utils/TestCollector.class' />
-    <include name='org/voltdb/utils/TestMiscUtils.class' />
-    <include name='org/voltdb/utils/TestSQLLexer.class' />
-    <include name='org/voltdb/utils/TestSegmentPool.class' />
-    <include name='org/voltdb/utils/TestSqlCmdInterface.class' />
-    <include name='org/voltdb/utils/TestSqlCommandParserInteractive.class' />
-    <include name='org/voltdb/utils/TestVoltBulkLoader.class' />
-
-    <!-- Exclude tests -->
-    <patternset refid='junit.exclusions'/>
-</patternset>
 
 <!-- Workload Tracer Properties -->
 <condition property="workload.trace.class" value="">
@@ -2045,7 +1694,7 @@ TEST CASES
     description="Execute JUnit test suites.">
     <run_junit>
         <tests>
-            <fileset dir='${build.test.dir}'>
+            <fileset dir='${build.test.dir}' casesensive='no'>
                 <patternset refid="junit.all.path" />
             </fileset>
         </tests>
@@ -2093,150 +1742,57 @@ TEST CASES
     <run_junit>
         <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.path" />
-                <patternset refid="junit.regression.h2.path" />
+                <patternset refid="junit.regression.all.path" />
             </fileset>
         </tests>
     </run_junit>
 </target>
 
-<target name="junit_regression_h1"
-    description="Execute first half of JUnit regression test suites.">
+<target name="junit_voltdb_testae"
+    description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h1.path" />
+            <fileset dir='${build.test.dir}' casesensitive="no">
+                <patternset refid="junit.voltdb.testae.path" />
             </fileset>
         </tests>
     </run_junit>
 </target>
 
-<target name="junit_regression_h2"
-    description="Execute second half of JUnit regression test suites.">
+<target name="junit_voltdb_testfz"
+    description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.h2.path" />
+            <fileset dir='${build.test.dir}' casesensitive="no">
+                <patternset refid="junit.voltdb.testfz.path" />
             </fileset>
         </tests>
     </run_junit>
 </target>
 
-<target name="junit_other"
-    description="Execute JUnit test suites except regression tests.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <!-- <patternset refid="junit.all.path" /> -->
-                <patternset refid="junit.other.p1.path" />
-                <patternset refid="junit.other.p2.path" />
-                <patternset refid="junit.other.p3.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<!-- 6 new targets which will be used after Docker deployed in testing -->
-<target name="junit_regression_p1"
-    description="Execute part 1 of JUnit regression test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.p1.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_regression_p2"
-    description="Execute part 2 of JUnit regression test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.p2.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_regression_p3"
-    description="Execute part 3 of JUnit regression test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.p3.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_other_p1"
-    description="Execute part 1 of other JUnit test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.other.p1.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_other_p2"
-    description="Execute part 2 of other JUnit test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.other.p2.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_other_voltdb"
+<target name="junit_voltdb_cd"
     description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.voltdb.path" />
+                <patternset refid="junit.voltdb.cd.path" />
             </fileset>
         </tests>
     </run_junit>
 </target>
 
-<target name="junit_other_voltdb_c"
+<target name="junit_voltdb_other"
     description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.voltdb.c.path" />
+            <fileset dir='${build.test.dir}' casesensive='no'>
+                <patternset refid='junit.voltdb.other.path' />
             </fileset>
         </tests>
     </run_junit>
 </target>
 
-<target name="junit_other_voltdb_d"
-    description="Execute part 3 of other JUnit test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.voltdb.d.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_other_voltdb_other"
-    description="Execute part 3 of other JUnit test suites.">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.voltdb.other.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-<target name="junit_other_voltcore"
+<target name="junit_voltcore"
     description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
@@ -2247,7 +1803,7 @@ TEST CASES
     </run_junit>
 </target>
 
-<target name="junit_other_hsqldb"
+<target name="junit_hsqldb"
     description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
@@ -2257,32 +1813,6 @@ TEST CASES
         </tests>
     </run_junit>
 </target>
-
-<patternset id='junit.other.misc.path'>
-    <!-- Standard junit fileset -->
-    <patternset refid="junit.all.path" />
-
-    <!-- Exclude tests -->
-    <patternset refid="junit.exclude.regression.path"/>
-    <invert>
-        <patternset refid="junit.voltdb.path"/>
-        <patternset refid="junit.voltcore.path"/>
-        <patternset refid="junit.hsqldb.path"/>
-    </invert>
-</patternset>
-
-<target name="junit_other_misc"
-    description="Execute everything else that wasn't covered in regressions and core tests .">
-    <run_junit>
-        <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.other.misc.path" />
-            </fileset>
-        </tests>
-    </run_junit>
-</target>
-
-
 
 <!-- common macro to run a bunch of junit -->
 <macrodef name='run_junit'>
