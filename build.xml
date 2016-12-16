@@ -183,9 +183,34 @@
 </patternset>
 
 <patternset id='junit.voltdb.path'>
-    <include name='org/voltdb/**/Test*.class'/>
+    <include name='org/voltdb/Test*.class'/>
+    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
     <patternset refid="junit.exclusions"/>
 </patternset>
+
+<patternset id='junit.voltdb.c.path'>
+    <include name='org/voltdb/c*/Test*.class'/>
+    <exclude name='org/voltdb/Test*.class'/>
+    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
+    <patternset refid="junit.exclusions"/>
+</patternset>
+
+<patternset id='junit.voltdb.d.path'>
+    <include name='org/voltdb/d*/Test*.class'/>
+    <exclude name='org/voltdb/Test*.class'/>
+    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
+    <patternset refid="junit.exclusions"/>
+</patternset>
+
+<patternset id='junit.voltdb.other.path'>
+    <include name='org/voltdb/**/Test*.class'/>
+    <exclude name='org/voltdb/Test*.class'/>
+    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
+    <exclude name='org/voltdb/c*/Test*.class'/>
+    <exclude name='org/voltdb/d*/Test*.class'/>
+    <patternset refid="junit.exclusions"/>
+</patternset>
+
 
 
 <patternset id='junit.all.path'>
@@ -193,6 +218,9 @@
     <patternset refid='junit.hsqldb.path'/>
     <patternset refid='junit.voltcore.path'/>
     <patternset refid='junit.voltdb.path'/>
+    <patternset refid='junit.voltdb.c.path'/>
+    <patternset refid='junit.voltdb.d.path'/>
+    <patternset refid='junit.voltdb.other.path'/>
     <!-- Exclude tests -->
     <patternset refid="junit.exclusions"/>
 </patternset>
@@ -2170,6 +2198,39 @@ TEST CASES
         <tests>
             <fileset dir='${build.test.dir}'>
                 <patternset refid="junit.voltdb.path" />
+            </fileset>
+        </tests>
+    </run_junit>
+</target>
+
+<target name="junit_other_voltdb_c"
+    description="Execute part 3 of other JUnit test suites.">
+    <run_junit>
+        <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.voltdb.c.path" />
+            </fileset>
+        </tests>
+    </run_junit>
+</target>
+
+<target name="junit_other_voltdb_d"
+    description="Execute part 3 of other JUnit test suites.">
+    <run_junit>
+        <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.voltdb.d.path" />
+            </fileset>
+        </tests>
+    </run_junit>
+</target>
+
+<target name="junit_other_voltdb_other"
+    description="Execute part 3 of other JUnit test suites.">
+    <run_junit>
+        <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.voltdb.other.path" />
             </fileset>
         </tests>
     </run_junit>
