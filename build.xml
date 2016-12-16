@@ -172,6 +172,23 @@
 
 </patternset>
 
+<patternset id='junit.regression.longtests.path'>
+    <include name="org/voltdb/regressionsuites/TestPartialIndexesSuite.class"/> <!-- this takes 7 minutes -->
+    <include name="org/voltdb/regressionsuites/TestQueryTimeout.class"/><!-- this takes 10 minutes -->
+    <include name="org/voltdb/regressionsuites/TestRollbackSuite.class"/><!-- this takes 5 minutes -->
+    <include name="org/voltdb/regressionsuites/TestSubQueriesSuite.class"/><!-- this takes 7 minutes -->
+</patternset>
+
+<target name="junit_regression_longtests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}'>
+                <patternset refid="junit.regression.longtests.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+
+
 <patternset id='junit.hsqldb.path'>
     <include name='org/hsqldb_voltpatches/**/Test*.class'/>
     <patternset refid="junit.exclusions"/>
@@ -182,21 +199,29 @@
     <patternset refid="junit.exclusions"/>
 </patternset>
 
-<patternset id='junit.voltdb.testae.path'>
+<patternset id='junit.voltdb.testad.path'>
     <include name='org/voltdb/TestA*.class'/>
     <include name='org/voltdb/TestB*.class'/>
     <include name='org/voltdb/TestC*.class'/>
     <include name='org/voltdb/TestD*.class'/>
+    <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
+
+    <patternset refid="junit.exclusions"/>
+</patternset>
+
+<patternset id='junit.voltdb.teste.path'>
     <include name='org/voltdb/TestE*.class'/>
     <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
     <patternset refid="junit.exclusions"/>
 </patternset>
 
+
 <!-- everything 1 level under org.voltdb/ except what was in junit.voltdb.testae.path -->
 <patternset id='junit.voltdb.testfz.path'>
     <include name='org/voltdb/Test*.class'/>
     <invert>
-        <patternset refid='junit.voltdb.testae.path'/>
+        <patternset refid='junit.voltdb.testad.path'/>
+        <patternset refid='junit.voltdb.teste.path'/>
     </invert>
     <exclude name='org/voltdb/regressionsuites/**/Test*.class'/>
     <patternset refid="junit.exclusions"/>
@@ -245,21 +270,6 @@
     <exclude name="org/voltdb/regressionsuites/**/*.class"/>
 </patternset>
 
-<patternset id='junit.regression.longtests.path'>
-    <include name="org/voltdb/regressionsuites/TestPartialIndexesSuite.class"/> <!-- this takes 7 minutes -->
-    <include name="org/voltdb/regressionsuites/TestQueryTimeout.class"/><!-- this takes 10 minutes -->
-    <include name="org/voltdb/regressionsuites/TestRollbackSuite.class"/><!-- this takes 5 minutes -->
-    <include name="org/voltdb/regressionsuites/TestSQLFeaturesNewSuite.class"/><!-- this takes 6 minutes -->
-    <include name="org/voltdb/regressionsuites/TestSubQueriesSuite.class"/><!-- this takes 7 minutes -->
-</patternset>
-
-<target name="junit_regression_longtests">
-    <run_junit> <tests>
-            <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.longtests.path" />
-            </fileset>
-        </tests> </run_junit>
-</target>
 <target name="junit_regression_ABCD" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
@@ -377,7 +387,20 @@
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.SO_SZ_T.path'>
+<patternset id='junit.regression.sql.path'>
+    <include name='org/voltdb/regressionsuites/TestSQL*.class' />
+    <include name='org/voltdb/regressionsuites/TestSql*.class' />
+</patternset>
+
+<target name="junit_regression_sql" description="Execute subsection of regression tests">
+    <run_junit> <tests>
+            <fileset dir='${build.test.dir}' casesensitive="no">
+                <patternset refid="junit.regression.sql.path" />
+            </fileset>
+        </tests> </run_junit>
+</target>
+
+<patternset id='junit.regression.SO_SZ.path'>
     <include name='org/voltdb/regressionsuites/TestSO*.class' />
     <include name='org/voltdb/regressionsuites/TestSP*.class' />
     <include name='org/voltdb/regressionsuites/TestSQ*.class' />
@@ -390,30 +413,31 @@
     <include name='org/voltdb/regressionsuites/TestSX*.class' />
     <include name='org/voltdb/regressionsuites/TestSY*.class' />
     <include name='org/voltdb/regressionsuites/TestSZ*.class' />
-    <include name='org/voltdb/regressionsuites/TestT*.class' />
     <invert>
         <patternset refid='junit.regression.longtests.path'/>
+        <patternset refid='junit.regression.sql.path'/>
     </invert>
     <patternset refid='junit.exclusions'/>
 </patternset>
 
-<target name="junit_regression_SO_SZ_T" description="Execute subsection of regression tests">
+<target name="junit_regression_SO_SZ" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}' casesensitive="no">
-                <patternset refid="junit.regression.SO_SZ_T.path" />
+                <patternset refid="junit.regression.SO_SZ.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<target name="junit_regression_UVWXYZ" description="Execute subsection of regression tests">
+<target name="junit_regression_TUVWXYZ" description="Execute subsection of regression tests">
     <run_junit> <tests>
             <fileset dir='${build.test.dir}'>
-                <patternset refid="junit.regression.UVWXYZ.path" />
+                <patternset refid="junit.regression.TUVWXYZ.path" />
             </fileset>
         </tests> </run_junit>
 </target>
 
-<patternset id='junit.regression.UVWXYZ.path'>
+<patternset id='junit.regression.TUVWXYZ.path'>
+    <include name='org/voltdb/regressionsuites/TestT*.class' />
     <include name='org/voltdb/regressionsuites/TestU*.class' />
     <include name='org/voltdb/regressionsuites/TestV*.class' />
     <include name='org/voltdb/regressionsuites/TestW*.class' />
@@ -1771,16 +1795,28 @@ TEST CASES
     </run_junit>
 </target>
 
-<target name="junit_voltdb_testae"
+<target name="junit_voltdb_testad"
     description="Execute part 3 of other JUnit test suites.">
     <run_junit>
         <tests>
             <fileset dir='${build.test.dir}' casesensitive="no">
-                <patternset refid="junit.voltdb.testae.path" />
+                <patternset refid="junit.voltdb.testad.path" />
             </fileset>
         </tests>
     </run_junit>
 </target>
+
+<target name="junit_voltdb_teste"
+    description="Execute part 3 of other JUnit test suites.">
+    <run_junit>
+        <tests>
+            <fileset dir='${build.test.dir}' casesensitive="no">
+                <patternset refid="junit.voltdb.teste.path" />
+            </fileset>
+        </tests>
+    </run_junit>
+</target>
+
 
 <target name="junit_voltdb_testfz"
     description="Execute part 3 of other JUnit test suites.">
