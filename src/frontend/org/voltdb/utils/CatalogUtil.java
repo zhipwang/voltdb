@@ -1952,6 +1952,11 @@ public abstract class CatalogUtil {
                 cluster.setDrmasterhost(drSource);
                 cluster.setDrconsumerenabled(drConnection.isEnabled());
                 hostLog.info("Configured connection for DR replica role to host " + drSource);
+            } else {
+                if (dr.getRole() == DrRoleType.XDCR) {
+                    // consumer should be enabled even without connection source for XDCR
+                    cluster.setDrconsumerenabled(true);
+                }
             }
         } else {
             cluster.setDrrole(DrRoleType.NONE.value());
@@ -2682,5 +2687,9 @@ public abstract class CatalogUtil {
         }
         return sb.toString();
     }
+
+    public static final String CATALOG_FILE_NAME = "catalog.jar";
+
+    public static final String STAGED_CATALOG_FILE_NAME = "staged-catalog.jar";
 
 }
