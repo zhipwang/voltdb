@@ -210,6 +210,7 @@ CREATE TABLE capp
 ) );
 PARTITION TABLE capp ON COLUMN p;
 
+LOAD CLASSES txnid.jar;
 -- base procedures you shouldn't call
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.UpdateBaseProc;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.ReplicatedUpdateBaseProc;

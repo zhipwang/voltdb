@@ -45,10 +45,10 @@ public class UpdateBaseProc extends VoltProcedure {
             "SELECT * FROM adhocp ORDER BY ts DESC, id LIMIT 1");
 
     public final SQLStmt p_insert = new SQLStmt(
-            "INSERT INTO partitioned VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO partitioned (txnid, prevtxnid, ts, cid, cidallhash, rid, cnt, adhocinc, adhocjmp, value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
     public final SQLStmt p_export = new SQLStmt(
-            "INSERT INTO partitioned_export VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO partitioned_export (txnid, prevtxnid, ts, cid, cidallhash, rid, cnt, adhocinc, adhocjmp, value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
     // PLEASE SEE ReplicatedUpdateBaseProc for the replicated procs
     // that can't be listed here (or SP procs wouldn't compile)
