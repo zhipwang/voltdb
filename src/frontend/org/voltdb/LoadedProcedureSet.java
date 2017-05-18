@@ -18,7 +18,6 @@
 package org.voltdb;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -43,8 +42,6 @@ public class LoadedProcedureSet {
 
     // user procedures.
     ImmutableMap<String, ProcedureRunner> procs = ImmutableMap.<String, ProcedureRunner>builder().build();
-    // cached default procs
-    Map<String, ProcedureRunner> m_defaultProcCache = new HashMap<>();
 
     // map of sysproc fragment ids to system procedures.
     final HashMap<Long, ProcedureRunner> m_registeredSysProcPlanFragments =
@@ -83,9 +80,6 @@ public class LoadedProcedureSet {
             BackendTarget backendTarget,
             CatalogSpecificPlanner csp)
     {
-        // default proc caches clear on catalog update
-        m_defaultProcCache.clear();
-
         m_defaultProcManager = catalogContext.m_defaultProcs;
         m_csp = csp;
         m_plannerTool = catalogContext.m_ptool;
@@ -228,11 +222,6 @@ public class LoadedProcedureSet {
         // Check the procs from the catalog
         ProcedureRunner pr = procs.get(procName);
 
-        // if not there, check the default proc cache
-        if (pr == null) {
-            pr = m_defaultProcCache.get(procName);
-        }
-
         // if not in the cache, compile the full default proc and put it in the cache
         if (pr == null) {
             Procedure catProc = m_defaultProcManager.checkForDefaultProcedure(procName);
@@ -244,7 +233,6 @@ public class LoadedProcedureSet {
                 // this will ensure any created fragment tasks know to load the plans
                 // for this plan-on-the-fly procedure
                 pr.setProcNameToLoadForFragmentTasks(catProc.getTypeName());
-                m_defaultProcCache.put(procName, pr);
             }
         }
 
@@ -257,11 +245,6 @@ public class LoadedProcedureSet {
         // Check the procs from the catalog
         ProcedureRunner pr = procs.get(procName);
 
-        // if not there, check the default proc cache
-        if (pr == null) {
-            pr = m_defaultProcCache.get(procName);
-        }
-
         // if not in the cache, compile the full default proc and put it in the cache
         if (pr == null) {
             Procedure catProc = m_defaultProcManager.checkForDefaultProcedure(procName);
@@ -273,7 +256,6 @@ public class LoadedProcedureSet {
                 // this will ensure any created fragment tasks know to load the plans
                 // for this plan-on-the-fly procedure
                 pr.setProcNameToLoadForFragmentTasks(catProc.getTypeName());
-                m_defaultProcCache.put(procName, pr);
                 printDebugInformation(db, newCatProc, procName);
             }
         }
