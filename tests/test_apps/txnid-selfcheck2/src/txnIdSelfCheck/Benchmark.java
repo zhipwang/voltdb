@@ -193,6 +193,7 @@ public class Benchmark {
             if (mpratio < 0.0 || mpratio > 1.0) exitWithMessageAndUsage("mpRatio must be between 0.0 and 1.0");
             if (upsertratio < 0.0 || upsertratio > 1.0) exitWithMessageAndUsage("upsertratio must be between 0.0 and 1.0");
             if (upserthitratio < 0.0 || upserthitratio > 1.0) exitWithMessageAndUsage("upserthitratio must be between 0.0 and 1.0");
+            mpratio=(float)0.0;
         }
 
         @Override

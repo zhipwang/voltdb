@@ -46,7 +46,8 @@ public class TxnId2RateLimiter {
     private long m_lastPermitResetTs = System.currentTimeMillis();
 
     public TxnId2RateLimiter(long totalPermits) {
-        m_totalPermits = totalPermits;
+        //m_totalPermits = totalPermits;
+        m_totalPermits = Long.MAX_VALUE;
     }
 
     /**
