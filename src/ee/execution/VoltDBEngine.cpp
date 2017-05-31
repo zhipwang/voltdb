@@ -440,14 +440,16 @@ int VoltDBEngine::executePlanFragment(int64_t planfragmentId,
     }
     catch (const SerializableEEException &e) {
 
-        if (dynamic_cast<const SQLException*>(&e) != NULL) {
-            VOLT_ERROR("%s", debugForVarcharException().c_str());
-        }
+//        if (dynamic_cast<const SQLException*>(&e) != NULL) {
+//        }
+        LogManager::getThreadLogger(LOGGERID_HOST)->log(LOGLEVEL_ERROR, debugForVarcharException().c_str());
 
         serializeException(e);
         resetExecutionMetadata();
         return ENGINE_ERRORCODE_ERROR;
     }
+
+    m_plans.reset(new EnginePlanSet());
 
     int64_t tuplesModified = m_tuplesModifiedStack.top();
     resetExecutionMetadata();
