@@ -442,7 +442,7 @@ int VoltDBEngine::executePlanFragment(int64_t planfragmentId,
 
 //        if (dynamic_cast<const SQLException*>(&e) != NULL) {
 //        }
-        LogManager::getThreadLogger(LOGGERID_HOST)->log(LOGLEVEL_ERROR, debugForVarcharException().c_str());
+        LogManager::getThreadLogger(LOGGERID_HOST)->log(LOGLEVEL_WARN, debugForVarcharException().c_str());
 
         serializeException(e);
         resetExecutionMetadata();
@@ -1141,7 +1141,17 @@ void VoltDBEngine::setExecutorVectorForFragmentId(int64_t fragId)
         throw SerializableEEException(VOLT_EE_EXCEPTION_TYPE_EEEXCEPTION, msg);
     }
 
-    boost::shared_ptr<ExecutorVector> ev_guard = ExecutorVector::fromJsonPlan(this, plan, fragId);
+    boost::shared_ptr<ExecutorVector> ev_guard;
+
+    try {
+        ev_guard = ExecutorVector::fromJsonPlan(this, plan, fragId);
+    } catch (SerializableEEException &e) {
+        // print out the EE string
+        char msg[1024];
+        snprintf(msg, 1024, "Received Json plan string from Java: %s", plan.c_str());
+
+        LogManager::getThreadLogger(LOGGERID_HOST)->log(LOGLEVEL_WARN, msg);
+    }
 
     // add the plan to the back
     //
