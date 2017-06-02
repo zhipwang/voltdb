@@ -1,3 +1,9 @@
+LOAD CLASSES txnid.jar;
+
+-- Tell sqlcmd to batch the following commands together,
+-- so that the schema loads quickly.
+file -inlinebatch END_OF_BATCH
+
 -- partitioned table
 CREATE TABLE partitioned
 (
@@ -20,11 +26,25 @@ CREATE TABLE partitioned
 PARTITION TABLE partitioned ON COLUMN cid;
 CREATE INDEX P_CIDINDEX ON partitioned (cid);
 
+CREATE VIEW partview (
+    cid,
+    entries,
+    maximum,
+    minimum,
+    summation
+) AS SELECT
+    cid,
+    COUNT(*),
+    MAX(cnt),
+    MIN(cnt),
+    SUM(cnt)
+FROM partitioned GROUP BY cid;
+
 -- dimension table
 CREATE TABLE dimension
 (
   cid        tinyint            NOT NULL
-, desc	     tinyint     		NOT NULL
+, desc         tinyint             NOT NULL
 , CONSTRAINT PK_id_d PRIMARY KEY
   (
     cid
@@ -53,6 +73,20 @@ CREATE TABLE replicated
 , UNIQUE ( cid, rid )
 );
 CREATE INDEX R_CIDINDEX ON replicated (cid);
+
+CREATE VIEW replview (
+    cid,
+    entries,
+    maximum,
+    minimum,
+    summation
+) AS SELECT
+    cid,
+    COUNT(*),
+    MAX(cnt),
+    MIN(cnt),
+    SUM(cnt)
+FROM replicated GROUP BY cid;
 
 -- replicated table
 CREATE TABLE adhocr
@@ -106,7 +140,7 @@ CREATE TABLE forDroppedProcedure
 PARTITION TABLE forDroppedProcedure ON COLUMN p;
 
 -- export tables
-CREATE TABLE partitioned_export
+CREATE STREAM partitioned_export PARTITION ON COLUMN cid export to target default
 (
   txnid      bigint             NOT NULL
 , prevtxnid  bigint             NOT NULL
@@ -119,10 +153,32 @@ CREATE TABLE partitioned_export
 , adhocjmp   bigint             NOT NULL
 , value      varbinary(1048576) NOT NULL
 );
-PARTITION TABLE partitioned_export ON COLUMN cid;
-EXPORT TABLE partitioned_export;
 
-CREATE TABLE replicated_export
+CREATE VIEW ex_partview (
+    cid,
+    entries,
+    maximum,
+    minimum,
+    summation
+) AS SELECT
+    cid,
+    COUNT(*),
+    MAX(cnt),
+    MIN(cnt),
+    SUM(cnt)
+FROM partitioned_export GROUP BY cid;
+
+CREATE TABLE ex_partview_shadow (
+    cid tinyint not null,
+    entries int,
+    maximum bigint,
+    minimum bigint,
+    summation bigint,
+    primary key(cid)
+);
+PARTITION TABLE ex_partview_shadow ON COLUMN cid;
+
+CREATE STREAM replicated_export export to target default
 (
   txnid      bigint             NOT NULL
 , prevtxnid  bigint             NOT NULL
@@ -135,7 +191,39 @@ CREATE TABLE replicated_export
 , adhocjmp   bigint             NOT NULL
 , value      varbinary(1048576) NOT NULL
 );
-EXPORT TABLE replicated_export;
+
+-- For loadsinglepartition
+CREATE TABLE loadp
+(
+  cid    BIGINT NOT NULL
+, txnid  BIGINT NOT NULL
+, rowid  BIGINT NOT NULL
+, CONSTRAINT pkey_id_forLoadPartitionSP PRIMARY KEY (cid)
+);
+PARTITION TABLE loadp ON COLUMN cid;
+CREATE TABLE cploadp
+(
+  cid    BIGINT NOT NULL
+, txnid  BIGINT NOT NULL
+, rowid  BIGINT NOT NULL
+);
+PARTITION TABLE cploadp ON COLUMN cid;
+
+
+-- For loadmultiplepartition
+CREATE TABLE loadmp
+(
+  cid    BIGINT NOT NULL
+, txnid  BIGINT NOT NULL
+, rowid  BIGINT NOT NULL
+, CONSTRAINT pkey_id_forLoadPartitionMP PRIMARY KEY (cid)
+);
+CREATE TABLE cploadmp
+(
+  cid    BIGINT NOT NULL
+, txnid  BIGINT NOT NULL
+, rowid  BIGINT NOT NULL
+);
 
 CREATE TABLE T_PAYMENT50 (
    SEQ_NO varchar(32 BYTES) NOT NULL,
@@ -175,45 +263,12 @@ CREATE INDEX IDX_PAYMENT50_TIME ON T_PAYMENT50 (DD_APDATE);
 CREATE INDEX IDX_PAYMENT50_UID ON T_PAYMENT50 (PID, UID);
 DR TABLE T_PAYMENT50;
 
--- For loadsinglepartition
-CREATE TABLE loadp
-(
-  cid    BIGINT NOT NULL
-, txnid  BIGINT NOT NULL
-, rowid  BIGINT NOT NULL
-, CONSTRAINT pkey_id_forLoadPartitionSP PRIMARY KEY (cid, txnid)
-);
-PARTITION TABLE loadp ON COLUMN cid;
-CREATE TABLE cploadp
-(
-  cid    BIGINT NOT NULL
-, txnid  BIGINT NOT NULL
-, rowid  BIGINT NOT NULL
-);
-PARTITION TABLE cploadp ON COLUMN cid;
-
-
--- For loadmultiplepartition
-CREATE TABLE loadmp
-(
-  cid    BIGINT NOT NULL
-, txnid  BIGINT NOT NULL
-, rowid  BIGINT NOT NULL
-, CONSTRAINT pkey_id_forLoadPartitionMP PRIMARY KEY (cid, txnid)
-);
-CREATE TABLE cploadmp
-(
-  cid    BIGINT NOT NULL
-, txnid  BIGINT NOT NULL
-, rowid  BIGINT NOT NULL
-);
-
 CREATE TABLE trur
 (
   p          bigint             NOT NULL
 , id         bigint             NOT NULL
 , value      varbinary(1048576) NOT NULL
-, CONSTRAINT PK_id_tr PRIMARY KEY (p,id)
+, CONSTRAINT PK_id_TRUR PRIMARY KEY (p,id)
 );
 
 CREATE TABLE trup
@@ -221,34 +276,127 @@ CREATE TABLE trup
   p          bigint             NOT NULL
 , id         bigint             NOT NULL
 , value      varbinary(1048576) NOT NULL
-, CONSTRAINT PK_id_tp PRIMARY KEY (p,id)
+, CONSTRAINT PK_id_TRUP PRIMARY KEY (p,id)
 );
 PARTITION TABLE trup ON COLUMN p;
+
+CREATE TABLE swapr
+(
+  p          bigint             NOT NULL
+, id         bigint             NOT NULL
+, value      varbinary(1048576) NOT NULL
+, CONSTRAINT PK_id_SWAPR PRIMARY KEY (p,id)
+);
+
+CREATE TABLE swapp
+(
+  p          bigint             NOT NULL
+, id         bigint             NOT NULL
+, value      varbinary(1048576) NOT NULL
+, CONSTRAINT PK_id_SWAPP PRIMARY KEY (p,id)
+);
+PARTITION TABLE swapp ON COLUMN p;
+
+-- TODO: these two temp tables (tempr, tempp) will no longer be needed,
+-- once SWAP TABLES, as ad hoc DML, is fully supported on master:
+CREATE TABLE tempr
+(
+  p          bigint             NOT NULL
+, id         bigint             NOT NULL
+, value      varbinary(1048576) NOT NULL
+, CONSTRAINT PK_id_TEMPR PRIMARY KEY (p,id)
+);
+
+CREATE TABLE tempp
+(
+  p          bigint             NOT NULL
+, id         bigint             NOT NULL
+, value      varbinary(1048576) NOT NULL
+, CONSTRAINT PK_id_TEMPP PRIMARY KEY (p,id)
+);
+PARTITION TABLE tempp ON COLUMN p;
 
 CREATE TABLE capr
 (
   p          bigint             NOT NULL
 , id         bigint             NOT NULL
-, tmstmp	 timestamp			NOT NULL
+, tmstmp     timestamp            NOT NULL
 , value      varbinary(1048576) NOT NULL
 , CONSTRAINT PK_id_cr PRIMARY KEY (p,id)
 , LIMIT PARTITION ROWS 10 EXECUTE (
-	DELETE FROM CAPR WHERE tmstmp < NOW
+    DELETE FROM CAPR WHERE tmstmp < NOW
 ) );
 
 CREATE TABLE capp
 (
   p          bigint             NOT NULL
 , id         bigint             NOT NULL
-, tmstmp 	 timestamp			NOT NULL
+, tmstmp     timestamp            NOT NULL
 , value      varbinary(1048576) NOT NULL
 , CONSTRAINT PK_id_cp PRIMARY KEY (p,id)
 , LIMIT PARTITION ROWS 10 EXECUTE (
-	DELETE FROM CAPP WHERE tmstmp < NOW
+    DELETE FROM CAPP WHERE tmstmp < NOW
 ) );
 PARTITION TABLE capp ON COLUMN p;
 
-LOAD CLASSES txnid.jar;
+-- import table partitioned
+CREATE TABLE importp
+(
+  ts         bigint             NOT NULL
+, cid        tinyint            NOT NULL
+, cnt        bigint             NOT NULL
+, rc         bigint             NOT NULL
+, CONSTRAINT PK_IMPORT_id_p PRIMARY KEY
+  (
+    cid
+  )
+, UNIQUE ( cid )
+);
+PARTITION TABLE importp ON COLUMN cid;
+CREATE INDEX P_IMPORTCIDINDEX ON importp (cid);
+
+-- import table replicated
+CREATE TABLE importr
+(
+  ts         bigint             NOT NULL
+, cid        tinyint            NOT NULL
+, cnt        bigint             NOT NULL
+, rc         bigint             NOT NULL
+, CONSTRAINT PK_IMPORT_id_r PRIMARY KEY
+  (
+    cid
+  )
+, UNIQUE ( cid )
+);
+CREATE INDEX R_IMPORTCIDINDEX ON importr (cid);
+
+-- import bitmap table partitioned
+CREATE TABLE importbp
+(
+  cid        tinyint            NOT NULL
+, seq        int                NOT NULL
+, bitmap     varbinary(1024)    NOT NULL
+, CONSTRAINT PK_IMPORT_id_bp PRIMARY KEY
+  (
+    cid, seq
+  )
+, UNIQUE ( cid, seq )
+);
+PARTITION TABLE importbp ON COLUMN cid;
+
+-- import bitmap table replicated
+CREATE TABLE importbr
+(
+  cid        tinyint            NOT NULL
+, seq        int                NOT NULL
+, bitmap     varbinary(1024)    NOT NULL
+, CONSTRAINT PK_IMPORT_id_br PRIMARY KEY
+  (
+    cid, seq
+  )
+, UNIQUE ( cid, seq )
+);
+
 -- base procedures you shouldn't call
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.UpdateBaseProc;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.ReplicatedUpdateBaseProc;
@@ -272,6 +420,7 @@ PARTITION PROCEDURE ReadSPInProcAdHoc ON TABLE partitioned COLUMN cid;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.ReadMPInProcAdHoc;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.Summarize;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.Summarize_Replica;
+CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.Summarize_Import;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.BIGPTableInsert;
 PARTITION PROCEDURE BIGPTableInsert ON TABLE bigp COLUMN p;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.BIGRTableInsert;
@@ -289,12 +438,16 @@ CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.DeleteOnlyLoadTableSP;
 PARTITION PROCEDURE DeleteOnlyLoadTableSP ON TABLE T_PAYMENT50 COLUMN pid;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.DeleteOnlyLoadTableMP;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPTableInsert;
-PARTITION PROCEDURE TRUPTableInsert ON TABLE bigp COLUMN p;
+PARTITION PROCEDURE TRUPTableInsert ON TABLE trup COLUMN p;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRURTableInsert;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPTruncateTableSP;
 PARTITION PROCEDURE TRUPTruncateTableSP ON TABLE trup COLUMN p;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPTruncateTableMP;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRURTruncateTable;
+CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPSwapTablesSP;
+PARTITION PROCEDURE TRUPSwapTablesSP ON TABLE trup COLUMN p;
+CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPSwapTablesMP;
+CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRURSwapTables;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPScanAggTableSP;
 PARTITION PROCEDURE TRUPScanAggTableSP ON TABLE trup COLUMN p;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.TRUPScanAggTableMP;
@@ -304,3 +457,9 @@ PARTITION PROCEDURE CAPPTableInsert ON TABLE capp COLUMN p;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.CAPRTableInsert;
 CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.CAPPCountPartitionRows;
 PARTITION PROCEDURE CAPPCountPartitionRows ON TABLE capp COLUMN p;
+CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.ImportInsertP;
+PARTITION PROCEDURE ImportInsertP ON TABLE importp COLUMN cid PARAMETER 3;
+PARTITION PROCEDURE ImportInsertP ON TABLE importbp COLUMN cid PARAMETER 3;
+CREATE PROCEDURE FROM CLASS txnIdSelfCheck.procedures.ImportInsertR;
+
+END_OF_BATCH
