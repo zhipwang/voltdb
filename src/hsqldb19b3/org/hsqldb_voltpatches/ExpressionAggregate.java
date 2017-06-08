@@ -31,6 +31,9 @@
 
 package org.hsqldb_voltpatches;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 import org.hsqldb_voltpatches.lib.ArrayListIdentity;
 import org.hsqldb_voltpatches.lib.HsqlList;
 import org.hsqldb_voltpatches.store.ValuePool;
@@ -242,6 +245,12 @@ public class ExpressionAggregate extends Expression {
         }
 
         dataType = SetFunction.getType(opType, nodes[LEFT].dataType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(opType) + Objects.hashCode(exprSubType) +
+                Objects.hashCode(isDistinctAggregate) + Arrays.hashCode(nodes);
     }
 
     @Override
