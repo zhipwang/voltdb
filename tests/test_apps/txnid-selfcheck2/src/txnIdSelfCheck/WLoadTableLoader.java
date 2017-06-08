@@ -24,6 +24,7 @@
 package txnIdSelfCheck;
 
 import org.voltdb.ClientResponseImpl;
+import org.voltdb.TheHashinator;
 import org.voltdb.VoltTable;
 import org.voltdb.VoltType;
 import org.voltdb.client.*;
@@ -582,7 +583,7 @@ public class WLoadTableLoader extends BenchmarkThread {
                     try {
                         if (!m_isMP) {
                             Object rpartitionParam
-                                    = VoltType.valueToBytes(m_table.fetchRow(0).get(m_partitionedColumnIndex, VoltType.STRING));
+                                    = TheHashinator.valueToBytes(m_table.fetchRow(0).get(m_partitionedColumnIndex, VoltType.STRING));
                             if (upsertHitMode != 0) {// for test upsert an existing row, insert it and then upsert same row again.
                                 // only insert
                                 success = client.callProcedure(new InsertCallback(latch, p, shouldCopy, wrkQueue, unkQueue, loadTxnCount, (byte)1), m_procName, rpartitionParam, m_tableName, (byte) 0, m_table);
