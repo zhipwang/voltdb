@@ -842,7 +842,7 @@ void PersistentTable::insertTupleCommon(TableTuple& source, TableTuple& target,
     }
 
     if (m_schema->getUninlinedObjectColumnCount() != 0) {
-        increaseStringMemCount(target.getNonInlinedMemorySize());
+        increaseStringMemCount(target.getNonInlinedMemorySizeForPersistentTable());
     }
 
     target.setActiveTrue();
@@ -1047,8 +1047,8 @@ void PersistentTable::updateTupleWithSpecificIndexes(TableTuple& targetTupleToUp
     }
 
     if (m_schema->getUninlinedObjectColumnCount() != 0) {
-        decreaseStringMemCount(targetTupleToUpdate.getNonInlinedMemorySize());
-        increaseStringMemCount(sourceTupleWithNewValues.getNonInlinedMemorySize());
+        decreaseStringMemCount(targetTupleToUpdate.getNonInlinedMemorySizeForPersistentTable());
+        increaseStringMemCount(sourceTupleWithNewValues.getNonInlinedMemorySizeForPersistentTable());
     }
 
     // TODO: This is a little messed up.
@@ -1159,8 +1159,8 @@ void PersistentTable::updateTupleForUndo(char* tupleWithUnwantedValues,
     }
 
     if (m_schema->getUninlinedObjectColumnCount() != 0) {
-        decreaseStringMemCount(targetTupleToUpdate.getNonInlinedMemorySize());
-        increaseStringMemCount(sourceTupleWithNewValues.getNonInlinedMemorySize());
+        decreaseStringMemCount(targetTupleToUpdate.getNonInlinedMemorySizeForPersistentTable());
+        increaseStringMemCount(sourceTupleWithNewValues.getNonInlinedMemorySizeForPersistentTable());
     }
 
     bool dirty = targetTupleToUpdate.isDirty();
