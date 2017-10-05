@@ -158,6 +158,10 @@ void LargeTempTableBlockCache::releaseAllBlocks() {
 
 void LargeTempTableBlockCache::storeABlock() {
 
+    if (m_blockList.empty()) {
+        throwDynamicSQLException("storeABlock called with empty block list)");
+    }
+
     auto it = m_blockList.end();
     do {
         --it;
