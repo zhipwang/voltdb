@@ -182,7 +182,7 @@ public class TableWorks {
         Index refIndex = table.createIndexStructure(indexName, c.core.refCols,
             null, null, false, true, isForward);
         HsqlName mainName = database.nameManager.newAutoName("REF",
-            c.getName().name, table.getSchemaName(), table.getName(),
+            c, null, table.getSchemaName(), table.getName(),
             SchemaObject.INDEX);
 
         c.core.uniqueName = uniqueConstraint.getName();
@@ -287,7 +287,8 @@ public class TableWorks {
 
                     HsqlName indexName =
                         database.nameManager.newAutoName("IDX",
-                                                         c.getName().name,
+                                                         c,
+                                                         null,
                                                          table.getSchemaName(),
                                                          table.getName(),
                                                          SchemaObject.INDEX);
@@ -339,7 +340,8 @@ public class TableWorks {
 
                     HsqlName indexName =
                         database.nameManager.newAutoName("IDX",
-                                                         c.getName().name,
+                                                         c,
+                                                         null,
                                                          table.getSchemaName(),
                                                          table.getName(),
                                                          SchemaObject.INDEX);
@@ -348,7 +350,7 @@ public class TableWorks {
                             c.getRefColumns(), null, null, false, true,
                             isForward);
                     c.core.uniqueName = uniqueConstraint.getName();
-                    c.core.mainName = database.nameManager.newAutoName("REF",
+                    c.core.mainName = database.nameManager.newAutoName("REF", null,
                             c.core.refName.name, table.getSchemaName(),
                             table.getName(), SchemaObject.INDEX);
                     c.core.mainIndex = uniqueConstraint.getMainIndex();
@@ -560,7 +562,7 @@ public class TableWorks {
         }
 
         // create an autonamed index
-        HsqlName indexname = database.nameManager.newAutoName("IDX",
+        HsqlName indexname = database.nameManager.newAutoName("IDX", null,
             name.name, table.getSchemaName(), table.getName(),
             SchemaObject.INDEX);
         Index index = table.createIndexStructure(indexname, cols, null, null,
@@ -1229,7 +1231,7 @@ public class TableWorks {
         }
 
         // create an autonamed index
-        HsqlName indexname = database.nameManager.newAutoName("IDX",
+        HsqlName indexname = database.nameManager.newAutoName("IDX", null,
             name.name, table.getSchemaName(), table.getName(),
             SchemaObject.INDEX);
         Index exprIndex = table.createIndexStructure(indexname, cols, null, null, true, true, false);

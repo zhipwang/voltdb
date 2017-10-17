@@ -66,9 +66,6 @@
 
 package org.hsqldb_voltpatches;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.hsqldb_voltpatches.HSQLInterface.HSQLParseException;
 import org.hsqldb_voltpatches.HsqlNameManager.HsqlName;
 import org.hsqldb_voltpatches.index.Index;
@@ -2704,20 +2701,16 @@ public class Table extends TableBase implements SchemaObject {
         // read all the constraints
         VoltXMLElement constraints = new VoltXMLElement("constraints");
         constraints.attributes.put("name", "constraints");
-        Map<String, VoltXMLElement> indexConstraintMap = new HashMap<>();
         for (Constraint constraint : getConstraints()) {
             VoltXMLElement constraintChild = constraint.voltGetConstraintXML();
             constraints.children.add(constraintChild);
-            if (constraintChild.attributes.containsKey("index")) {
-                indexConstraintMap.put(constraintChild.attributes.get("index"), constraintChild);
-            }
         }
 
         // read all the indexes
         VoltXMLElement indexes = new VoltXMLElement("indexes");
         indexes.attributes.put("name", "indexes");
         for (Index index : indexList) {
-            VoltXMLElement indexChild = index.voltGetIndexXML(session, tableName, indexConstraintMap);
+            VoltXMLElement indexChild = index.voltGetIndexXML(session, tableName);
             indexes.children.add(indexChild);
             assert(indexChild != null);
         }
@@ -2725,8 +2718,6 @@ public class Table extends TableBase implements SchemaObject {
         // Indexes must come before constraints when converting to the catalog.
         table.children.add(indexes);
         table.children.add(constraints);
-
-        assert(indexConstraintMap.isEmpty());
 
         return table;
     }
