@@ -560,6 +560,13 @@ public class TestWindowedFunctions extends PlannerTestCase {
                 + explainPlanText, explainPlanText.contains(expected));
     }
 
+    public void testSubqueryInWindowFunction() {
+        String windowedQuery;
+        windowedQuery = "SELECT MIN(TINY) OVER ( ORDER BY ( SELECT MAX(TINY) FROM R5 ) ) FROM R5;";
+        AbstractPlanNode plan = compile(windowedQuery);
+        assertNotNull(plan);
+    }
+
     // This can be used to disable particular tests.
     // Change IS_ENABLED to false, and then change all
     // the IS_ENABLED occurrences to something else, like

@@ -1480,7 +1480,15 @@ public abstract class AbstractParsedStmt {
         if (m_joinTree != null) {
             m_joinTree.extractSubQueries(subqueries);
         }
+        extractWindowFunctionSubqueries(subqueries);
         return subqueries;
+    }
+
+    private void extractWindowFunctionSubqueries(List<StmtSubqueryScan> subqueries) {
+        List<WindowFunctionExpression> winFuncs = getWindowFunctionExpressions();
+        for (WindowFunctionExpression winFunc : winFuncs) {
+            winFunc.extractSubqueries(subqueries);
+        }
     }
 
     // The parser currently attaches the summary parameter list

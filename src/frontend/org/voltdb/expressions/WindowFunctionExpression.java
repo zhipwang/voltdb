@@ -17,8 +17,10 @@
 package org.voltdb.expressions;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
+import org.voltdb.planner.parseinfo.StmtSubqueryScan;
 import org.voltdb.types.ExpressionType;
 import org.voltdb.types.SortDirectionType;
 
@@ -238,6 +240,16 @@ public class WindowFunctionExpression extends AbstractExpression {
     public boolean getIsDistinct() {
         // TODO Auto-generated method stub
         return m_isDistinct;
+    }
+
+    public void extractSubqueries(List<StmtSubqueryScan> subqueries) {
+        for (AbstractExpression ae : m_orderByExpressions) {
+            Collection<AbstractExpression> selSubQueries = ae.findAllSubexpressionsOfClass(SelectSubqueryExpression.class);
+            for (AbstractExpression sae : selSubQueries) {
+                SelectSubqueryExpression sse = (SelectSubqueryExpression)sae;
+                subqueries.add(sse.getSubqueryScan());
+            }
+         }
     }
 }
 
