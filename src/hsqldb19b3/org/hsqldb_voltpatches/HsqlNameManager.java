@@ -85,7 +85,6 @@ public final class HsqlNameManager {
     }
 
     private int      serialNumber = 1;        // 0 is reserved in lookups
-    private int      sysNumber    = 10000;    // avoid name clash in older scripts
     private HsqlName catalogName;
 
     public HsqlNameManager(Database database) {
@@ -244,8 +243,12 @@ public final class HsqlNameManager {
     }
 
     /**
-     * Get the name parts for constraint names.
-     * @param mainCols The columns involved in the constraint
+     * Get an auto-generated name part for constraint/index names.</br>
+     * The common format for the name part string is all the column names and a hash number for the
+     * indexed expressions (if any) concatenated by underscores.</br>
+     * This is a shortcut method for use cases that only have simple columns but
+     * no indexed expressions.
+     * @param mainCols The columns involved in the constraint.
      * @return The generated name part string.
      */
     static public String getAutogenNameParts(OrderedHashSet mainCols) {
@@ -253,9 +256,12 @@ public final class HsqlNameManager {
     }
 
     /**
-     * Get the name parts for constraint names.
+     * Get an auto-generated name part for constraint/index names.</br>
+     * The common format for the name part string is all the column names and a hash number for the
+     * indexed expressions (if any) concatenated by underscores.</br>
+     * This method takes simple columns and an array of indexed expressions.
      * @param mainCols The columns involved in the constraint
-     * @param indexExprs The index expressions involved in the constraint
+     * @param indexExprs The index expressions involved in the constraint.
      * @return The generated name part string.
      */
     static public String getAutogenNameParts(OrderedHashSet mainCols, Expression[] indexExprs) {
@@ -266,7 +272,9 @@ public final class HsqlNameManager {
     }
 
     /**
-     * Get the name parts for constraint names.
+     * Get an auto-generated name part for constraint/index names.</br>
+     * The common format for the name part string is all the column names and a hash number for the
+     * indexed expressions (if any) concatenated by underscores.
      * @param mainCols The columns involved in the constraint
      * @param indexExprs The index expressions involved in the constraint
      * @return The generated name part string.
@@ -308,7 +316,7 @@ public final class HsqlNameManager {
      * @param objectTypePrefix A prefix string indicating the type of the object. e.g., "PK", "UQ", etc.
      * @param associatedSchemaObject Normally, this is the table name to which this object belongs or null.
      * @param detailedDescriptor Normally, this contains information like the column names in the object
-     *  and the hash code of expressions (if any).
+     *  and the hash code of expressions (if any). This descriptor can be generated using getAutogenNameParts().
      * @param schema The schema to which this object belongs.
      * @param parent The parent to which this object belongs.
      * @param type This is the type of the object.
@@ -358,7 +366,6 @@ public final class HsqlNameManager {
     }
 
     void resetNumbering() {
-        sysNumber    = 0;
         serialNumber = 0;
     }
 

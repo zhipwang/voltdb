@@ -869,14 +869,11 @@ public class TableWorks {
                 break;
             }
             case Constraint.CHECK :
-                database.schemaManager.removeSchemaObject(
-                    constraint.getName());
+                database.schemaManager.removeSchemaObject(constraint.getName());
 
                 if (constraint.isNotNull()) {
-                    ColumnSchema column =
-                        table.getColumn(constraint.notNullColumnIndex);
-
-                    column.setNullable(false);
+                    ColumnSchema column = table.getColumn(constraint.notNullColumnIndex);
+                    column.setNullable(true);
                     table.setColumnTypeVars(constraint.notNullColumnIndex);
                 }
                 break;
