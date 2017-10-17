@@ -49,6 +49,8 @@ import org.hsqldb_voltpatches.rights.Grantee;
  * This class does not deal with the type of the SQL object for which it
  * is used.<p>
  *
+ * **Note** reserved system generated names are removed in VoltDB (ENG-13132).
+ *
  * Some names beginning with SYS_ are reserved for system generated names.
  * These are defined in isReserveName(String name) and created by the
  * makeAutoName(String type) factory method<p>
@@ -78,7 +80,9 @@ public final class HsqlNameManager {
 
     static {
         for (int i = 0; i < autoColumnNames.length; i++) {
-            autoColumnNames[i] = new HsqlName(staticManager, makeAutoColumnName("C", i), 0,
+            autoColumnNames[i] = new HsqlName(staticManager,
+                                              makeAutoColumnName("C", i),
+                                              0,
                                               false);
             autoNoNameColumnNames[i] = String.valueOf(i);
         }
@@ -141,7 +145,6 @@ public final class HsqlNameManager {
         return hsqlName;
     }
 
-    //
     public HsqlName newHsqlName(String name, boolean isquoted, int type) {
         return new HsqlName(this, name, isquoted, type);
     }
@@ -365,10 +368,6 @@ public final class HsqlNameManager {
         return name;
     }
 
-    void resetNumbering() {
-        serialNumber = 0;
-    }
-
     public static SimpleName getSimpleName(String name, boolean isNameQuoted) {
         return new SimpleName(name, isNameQuoted);
     }
@@ -413,7 +412,6 @@ public final class HsqlNameManager {
 
         static HsqlName[] emptyArray = new HsqlName[]{};
 
-        //
         HsqlNameManager   manager;
         public String     statementName;
         public HsqlName   schema;
@@ -438,8 +436,8 @@ public final class HsqlNameManager {
         }
 
         /** for auto names and system-defined names */
-        private HsqlName(HsqlNameManager man, String name, int type,
-                         boolean isQuoted) {
+        private HsqlName(HsqlNameManager man, String name,
+                         int type, boolean isQuoted) {
 
             this(man, type);
 

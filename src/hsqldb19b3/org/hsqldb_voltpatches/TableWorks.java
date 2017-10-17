@@ -285,13 +285,12 @@ public class TableWorks {
                     database.schemaManager.checkSchemaObjectNotExists(
                         c.getName());
 
-                    HsqlName indexName =
-                        database.nameManager.newAutoName("IDX",
-                                                         c,
-                                                         null,
-                                                         table.getSchemaName(),
-                                                         table.getName(),
-                                                         SchemaObject.INDEX);
+                    HsqlName indexName = database.nameManager.newHsqlName(
+                            table.getSchemaName(),
+                            c.getName().name,
+                            false,
+                            SchemaObject.INDEX,
+                            table.getName());
 
                     // create an autonamed index
                     index = table.createAndAddIndexStructure(indexName,

@@ -1033,7 +1033,17 @@ public class Table extends TableBase implements SchemaObject {
             pkCols = constraint.getMainColumns();
         }
 
-        tn.createPrimaryKey(getIndex(0).getName(), pkCols, false);
+        HsqlName indexName = database.nameManager.newAutoName(
+                "PK",
+                this, // associated with the current table
+                HsqlNameManager.getAutogenNameParts(
+                        constraint == null ?
+                                null
+                              : tn.getColumnNameSet(constraint.core.mainCols)),
+                getSchemaName(),       // schema name
+                getName(),             // parent name
+                SchemaObject.INDEX);   // type code
+        tn.createPrimaryKey(indexName, pkCols, false);
 
         for (int i = 1; i < indexList.length; i++) {
             Index idx = indexList[i];
@@ -1419,7 +1429,11 @@ public class Table extends TableBase implements SchemaObject {
         HsqlName name = indexName;
 
         if (name == null) {
-            name = database.nameManager.newAutoName("IDX", getSchemaName(),
+            name = database.nameManager.newAutoName(
+                    "PK",
+                    this,
+                    HsqlNameManager.getAutogenNameParts(getColumnNameSet(columns)),
+                    getSchemaName(),
                     getName(), SchemaObject.INDEX);
         }
 
@@ -1524,7 +1538,7 @@ public class Table extends TableBase implements SchemaObject {
         OrderedHashSet set = new OrderedHashSet();
 
         for (int i = 0; i < columnIndexes.length; i++) {
-            set.add(columnList.get(i));
+            set.add(((ColumnSchema) columnList.get(columnIndexes[i])).getName().name);
         }
 
         return set;

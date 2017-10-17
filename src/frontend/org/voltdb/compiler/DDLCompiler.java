@@ -45,7 +45,6 @@ import org.hsqldb_voltpatches.VoltXMLElement;
 import org.hsqldb_voltpatches.VoltXMLElement.VoltXMLDiff;
 import org.json_voltpatches.JSONException;
 import org.json_voltpatches.JSONStringer;
-import org.voltcore.logging.VoltLogger;
 import org.voltdb.VoltType;
 import org.voltdb.catalog.CatalogMap;
 import org.voltdb.catalog.Column;
@@ -115,8 +114,6 @@ public class DDLCompiler {
     private String m_fullDDL = "";
 
     private final VoltDBStatementProcessor m_voltStatementProcessor;
-
-    private final static VoltLogger m_udfLogger = new VoltLogger("UDF");
 
     // Partition descriptors parsed from DDL PARTITION or REPLICATE statements.
     private final VoltDDLElementTracker m_tracker;
@@ -1286,28 +1283,30 @@ public class DDLCompiler {
             }
 
             if (subNode.name.equals("indexes")) {
-
-                // Do the system indexes first, since we don't want to
-                // drop them: there are constraint objects in the catalog
+                // Add system-generated indexes first so they get priority when the
+                // compiler starts to throw out duplicate indexes since we don't want
+                // to drop them: there are constraint objects in the catalog
                 // that refer to them.
+                List<VoltXMLElement> nonSystemIndexes = new ArrayList<>();
                 for (VoltXMLElement indexNode : subNode.children) {
-                    if (indexNode.name.equals("index") == false) continue;
+                    if (! indexNode.name.equals("index")) {
+                        continue;
+                    }
                     String indexName = indexNode.attributes.get("name");
-                    if (indexName.startsWith(HSQLInterface.AUTO_GEN_IDX_PREFIX) == false) {
+                    // System indexes' name will start with AUTO_GEN_PREFIX.
+                    if (indexName.startsWith(HSQLInterface.AUTO_GEN_PREFIX)) {
                         addIndexToCatalog(db, table, indexNode, indexReplacementMap,
-                                indexMap, columnMap, m_compiler);
+                                          indexMap, columnMap, m_compiler);
+                    }
+                    else {
+                        nonSystemIndexes.add(indexNode);
                     }
                 }
-
-                for (VoltXMLElement indexNode : subNode.children) {
-                    if (indexNode.name.equals("index") == false) continue;
-                    String indexName = indexNode.attributes.get("name");
-                    if (indexName.startsWith(HSQLInterface.AUTO_GEN_IDX_PREFIX) == true) {
-                        addIndexToCatalog(db, table, indexNode, indexReplacementMap,
-                                indexMap, columnMap, m_compiler);
-                    }
+                // Add non-system indexes.
+                for (VoltXMLElement indexNode : nonSystemIndexes) {
+                    addIndexToCatalog(db, table, indexNode, indexReplacementMap,
+                                      indexMap, columnMap, m_compiler);
                 }
-
             }
 
             if (subNode.name.equals("constraints")) {
